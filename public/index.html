@@ -81,6 +81,7 @@
 <div class="keybox" id="keyBox"><div class="muted">NEW BROADCASTER KEY</div><div class="keyvalue" id="generatedKey"></div><button class="btn secondary mini" id="copyKey">Copy key</button><p class="muted" id="keyMessage"></p></div></div>
 <div class="panel"><div class="headline"><div><div class="muted">ACCESS</div><h2>Broadcasters</h2></div><button class="btn secondary mini" id="refreshBroadcasters">Refresh</button></div><div class="broadcasters" id="broadcasterList"><div class="empty">Loading broadcasters…</div></div></div>
 </div>
+<div class="panel" style="margin-top:20px"><div class="headline"><div><div class="muted">LIVE CONTROL</div><h2>Active broadcaster</h2></div><button class="btn secondary mini" id="forceEndBroadcast">Force End Broadcast</button></div><p class="muted" id="adminLiveStatus">No active broadcaster.</p></div>
 <div class="panel" style="margin-top:20px"><div class="headline"><div><div class="muted">ADMIN PLAYOUT</div><h2>Shared hotkeys</h2></div></div>
 <p class="muted">Upload station jingles, stabs or other shared audio here. These are kept separate from broadcasters' one-off audio and appear for every broadcaster as shared hotkeys.</p>
 <div class="audioUpload">
@@ -99,7 +100,16 @@
   'use strict';
   function byId(id){ return document.getElementById(id); }
   function all(sel){ return Array.prototype.slice.call(document.querySelectorAll(sel)); }
-  var mediaStream=null, audioCtx=null, analyser=null, recorder=null, socket=null, timerHandle=null, startedAt=0, wakeLock=null, appStatus={}, awaitingOutput=false, socketOpened=false, micMuted=false, mixDest=null, micSource=null, audioLibrary=[], userRole='broadcaster', deckSources={}, deckMonitorBuffers={}, deckMonitorSources={}, deckMonitorStartedAt={}, hotkeyMonitorPairs=[], playoutProgramGain=null, playoutMonitorGain=null, micMonitorGain=null, monitorPlayout=false, monitorMic=false, playoutDucked=false, expectedMicLabel='', lastRouteMicLabel='', activeDeckNumber=0, deckPlayStartedAt={}, activeBedPair=null;
+  function getClientInstanceId(){
+    try{
+      var id=localStorage.getItem('sfl.clientId');
+      if(id)return id;
+      id='client-'+Date.now()+'-'+Math.random().toString(36).slice(2,10);
+      localStorage.setItem('sfl.clientId',id);
+      return id;
+    }catch(e){return 'client-'+Date.now()+'-'+Math.random().toString(36).slice(2,10);}
+  }
+  var mediaStream=null, audioCtx=null, analyser=null, recorder=null, socket=null, timerHandle=null, startedAt=0, wakeLock=null, appStatus={}, awaitingOutput=false, socketOpened=false, micMuted=false, mixDest=null, micSource=null, audioLibrary=[], userRole='broadcaster', currentUserId='', clientInstanceId=getClientInstanceId(), deckSources={}, deckMonitorBuffers={}, deckMonitorSources={}, deckMonitorStartedAt={}, hotkeyMonitorPairs=[], playoutProgramGain=null, playoutMonitorGain=null, micMonitorGain=null, monitorPlayout=false, monitorMic=false, playoutDucked=false, expectedMicLabel='', lastRouteMicLabel='', activeDeckNumber=0, deckPlayStartedAt={}, activeBedPair=null;
 
   window.signalFlowSignIn=function(){
     var input=byId('token'), msg=byId('authMsg'), modal=byId('auth'), button=byId('signIn');
@@ -109,6 +119,8 @@
     if(msg)msg.textContent='Signing in…';
     if(button)button.disabled=true;
     api('/api/me').then(function(me){
+      currentUserId=me.id||'';
+      currentUserId=me.id||'';
       userRole=me.role||'broadcaster';
       all('.adminOnly').forEach(function(el){
         if(userRole==='admin')el.classList.add('show');
@@ -206,6 +218,14 @@
   window.signalFlowActivate=function(id){api('/api/broadcasters/'+id+'/activate',{method:'POST'}).then(loadBroadcasters).catch(function(e){alert(e.message);});};
   window.signalFlowRegenerate=function(id){if(!confirm('Generate a new key? Their old key will stop working immediately.'))return;api('/api/broadcasters/'+id+'/regenerate',{method:'POST',body:JSON.stringify({sendEmail:true})}).then(function(r){showGeneratedKey(r.key,r.invite&&r.invite.sent?'New key emailed to broadcaster.':(r.invite&&r.invite.reason?r.invite.reason:'New key generated.'));loadBroadcasters();}).catch(function(e){alert(e.message);});};
   window.signalFlowResend=function(id){api('/api/broadcasters/'+id+'/resend',{method:'POST'}).then(function(r){alert(r.invite&&r.invite.sent?'Invitation email sent.':(r.invite&&r.invite.reason?r.invite.reason:'Invite processed.'));}).catch(function(e){alert(e.message);});};
+  window.signalFlowForceEndBroadcast=function(){
+    if(userRole!=='admin')return;
+    if(!confirm('Force the current broadcaster off air?'))return;
+    api('/api/admin/force-end',{method:'POST'}).then(function(r){
+      if(byId('adminLiveStatus'))byId('adminLiveStatus').textContent=r.ended?'Broadcast ended by administrator.':'No active broadcaster.';
+      setTimeout(poll,300);
+    }).catch(function(e){alert(e.message);});
+  };
 
   function formatShort(seconds){
     if(!isFinite(seconds)||seconds<0)return '00:00';
@@ -793,9 +813,32 @@
     renderHistory();
   }
 
+  function broadcastLockedByOther(){
+    return !!(appStatus&&appStatus.active&&appStatus.currentClientId&&appStatus.currentClientId!==clientInstanceId);
+  }
+  function updateBroadcastLockUi(){
+    var locked=broadcastLockedByOther(),go=byId('go');
+    if(go&&!startedAt)go.disabled=locked||!mediaStream;
+    if(byId('adminLiveStatus')){
+      byId('adminLiveStatus').textContent=appStatus&&appStatus.active?((appStatus.currentBroadcaster||'Another broadcaster')+' is currently live.'):'No active broadcaster.';
+    }
+    if(!startedAt){
+      if(locked){
+        if(byId('badge')){byId('badge').className='badge';byId('badge').textContent='● IN USE';}
+        if(byId('headline'))byId('headline').textContent='Broadcast in use';
+        if(byId('message'))byId('message').textContent=(appStatus.currentBroadcaster||'Another broadcaster')+' is currently on air. Go Live will be available when their session ends.';
+      }else if(byId('headline')&&byId('headline').textContent==='Broadcast in use'){
+        if(byId('badge')){byId('badge').className='badge';byId('badge').textContent='● OFF AIR';}
+        byId('headline').textContent='Ready to broadcast';
+        if(byId('message'))byId('message').textContent=mediaStream?'Microphone ready. Check the level before going live.':'Select your microphone, check the level, then go live.';
+      }
+    }
+  }
+
   function poll(){
     fetch('/api/status',{cache:'no-store'}).then(function(r){return r.json();}).then(function(s){
       appStatus=s||{};
+      updateBroadcastLockUi();
       var isLive=!!s.active;
       var state=s.connectionState||'idle';
       var configured=!!s.configured;
@@ -937,7 +980,7 @@
       if(byId('routeMic'))byId('routeMic').textContent=label;
       if(byId('micCheck')){byId('micCheck').className='checkmark ok';byId('micCheck').textContent='✓';}
       if(byId('micText'))byId('micText').textContent=label;
-      if(byId('go'))byId('go').disabled=false;
+      if(byId('go'))byId('go').disabled=broadcastLockedByOther();
       if(byId('mute'))byId('mute').disabled=false;
       if(msg)msg.textContent='Microphone ready. Check the level before going live.';
       micSource=null;ensureAudioGraph();checkRouting();
@@ -992,13 +1035,14 @@
   }
 
   function beginBroadcast(){
+    if(broadcastLockedByOther()){if(byId('message'))byId('message').textContent=(appStatus.currentBroadcaster||'Another broadcaster')+' is already on air.';return;}
     if(!mediaStream){window.signalFlowPrepare();if(byId('message'))byId('message').textContent='Select the microphone first, then press Go Live again.';return;}
     if(!appStatus.configured){if(byId('message'))byId('message').textContent='The interface is ready, but the broadcast output has not been configured yet.';return;}
     if(typeof MediaRecorder==='undefined'){if(byId('message'))byId('message').textContent='Live audio encoding is not supported by this browser.';return;}
     var mime='',choices=['audio/webm;codecs=opus','audio/mp4','audio/webm'],i;
     if(MediaRecorder.isTypeSupported){for(i=0;i<choices.length;i++){if(MediaRecorder.isTypeSupported(choices[i])){mime=choices[i];break;}}}
     var proto=location.protocol==='https:'?'wss':'ws';
-    socket=new WebSocket(proto+'://'+location.host+'/live?token='+encodeURIComponent(getToken())+'&mime='+encodeURIComponent(mime));
+    socket=new WebSocket(proto+'://'+location.host+'/live?token='+encodeURIComponent(getToken())+'&mime='+encodeURIComponent(mime)+'&client='+encodeURIComponent(clientInstanceId));
     socket.binaryType='arraybuffer';
     socketOpened=false;
     socket.onopen=function(){
@@ -1014,9 +1058,14 @@
       if(byId('message'))byId('message').textContent='Audio is reaching SignalFlow. Waiting for the broadcast server to confirm the live source…';
       requestWake();
     };
-    socket.onclose=function(){
+    socket.onclose=function(e){
       if(startedAt)finishBroadcast(false);
-      else if(!socketOpened)requireFreshLogin('The broadcaster key was rejected. Please enter the current key and try again.');
+      else if(!socketOpened){
+        poll();
+        if(e&&e.code===1006){
+          if(byId('message'))byId('message').textContent='Could not take control. Another broadcaster may already be on air.';
+        }else requireFreshLogin('The broadcaster key was rejected. Please enter the current key and try again.');
+      }
     };
     socket.onerror=function(){
       if(byId('message'))byId('message').textContent='Could not connect to the broadcast relay.';
@@ -1089,6 +1138,7 @@
     if(byId('addBroadcaster'))byId('addBroadcaster').onclick=window.signalFlowCreateBroadcaster;
     if(byId('refreshBroadcasters'))byId('refreshBroadcasters').onclick=loadBroadcasters;
     if(byId('refreshAudit'))byId('refreshAudit').onclick=loadAudit;
+    if(byId('forceEndBroadcast'))byId('forceEndBroadcast').onclick=window.signalFlowForceEndBroadcast;
     if(byId('copyKey'))byId('copyKey').onclick=function(){var k=byId('generatedKey').textContent;if(k&&navigator.clipboard)navigator.clipboard.writeText(k);};
     if(byId('signIn'))byId('signIn').onclick=window.signalFlowSignIn;
     try{if(getToken()&&byId('auth')){byId('auth').classList.add('hide');byId('auth').style.display='none';}}catch(e){}

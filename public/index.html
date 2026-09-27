@@ -30,7 +30,7 @@
 <div class="check"><span class="checkmark" id="outputCheck">3</span><div><b>Broadcast output</b><small id="outputText">Checking…</small></div></div></div>
 <div class="toggle"><div><b>Keep screen awake</b><div class="muted" id="wakeText">Recommended while broadcasting</div></div><button class="switch" id="wake"></button></div></div>
 </div></section>
-<section class="view" id="output"><div class="two"><div class="panel"><div class="muted">PUBLIC OUTPUT</div><h2>Your live stream</h2><div class="url" id="listenUrl">Output URL not configured</div><button class="btn secondary" id="copy">Copy stream URL</button><p class="muted">Add this URL to the main SignalFlow scheduler as an ordinary stream source.</p></div><div class="panel"><div class="muted">LISTENER CONFIDENCE</div><h3>Test output</h3><audio controls id="player" style="width:100%;margin-top:15px"></audio><p class="muted">The listener player becomes usable once the Icecast output URL is configured.</p></div></div></section>
+<section class="view" id="output"><div class="two"><div class="panel"><div class="muted">PUBLIC OUTPUT</div><h2>Your live stream</h2><div class="url" id="listenUrl">Output URL not configured</div><button class="btn secondary" id="copy">Copy stream URL</button><p class="muted">Add this URL to the main SignalFlow scheduler as an ordinary stream source.</p></div><div class="panel"><div class="muted">LISTENER CONFIDENCE</div><h3>Test output</h3><audio controls preload="none" id="player" style="width:100%;margin-top:15px"></audio><p class="muted">The listener player becomes usable once the Icecast output URL is configured.</p></div></div></section>
 <section class="view" id="settings"><div class="two"><div class="panel"><div class="muted">AUDIO INPUT</div><h2>Microphone</h2><label>Input device<select id="device"><option value="">Default microphone</option></select></label><div class="row"><button class="btn secondary" id="refresh">Refresh devices</button><button class="btn secondary" id="test">Test mic</button></div><p class="muted">External USB, wired and Bluetooth microphones appear here when exposed by the browser/device.</p></div><div class="panel"><div class="muted">DEVICE</div><h2>Broadcast behaviour</h2><div class="toggle"><div><b>Keep screen awake</b><div class="muted">Uses the browser Screen Wake Lock API where supported.</div></div><button class="switch" id="wake2"></button></div><p class="muted" id="wakeSupport"></p></div></div></section>
 <section class="view" id="history"><div class="panel"><div class="headline"><div><div class="muted">THIS DEVICE</div><h2>Broadcast history</h2></div><button class="btn secondary" id="clear">Clear</button></div><div class="history" id="historyList"></div></div></section>
 </div></main></div>
@@ -93,11 +93,40 @@
       if(byId('outputCheck')){byId('outputCheck').className='checkmark'+(configured?' ok':'');byId('outputCheck').textContent=configured?'✓':'3';}
       if(byId('outputText'))byId('outputText').textContent=configured?'Configured':'Awaiting Icecast settings';
       if(byId('listenUrl'))byId('listenUrl').textContent=s.listenUrl||'Output URL not configured';
-      if(byId('player')&&s.listenUrl)byId('player').src=s.listenUrl;
+      if(byId('player')&&s.listenUrl){
+        byId('player').setAttribute('data-live-url',s.listenUrl);
+        if(!byId('player').getAttribute('src')) byId('player').src=freshStreamUrl(s.listenUrl);
+      }
     }).catch(function(){
       if(byId('topState'))byId('topState').textContent='Relay unavailable';
       if(byId('sideState'))byId('sideState').textContent='Offline';
       if(byId('relayText'))byId('relayText').textContent='Unavailable';
+    });
+  }
+
+  function freshStreamUrl(url){
+    if(!url)return '';
+    var join=url.indexOf('?')>=0?'&':'?';
+    return url+join+'_sf_live='+Date.now();
+  }
+  function installLivePlayer(){
+    var p=byId('player'); if(!p)return;
+    var refreshing=false;
+    p.addEventListener('play',function(){
+      if(refreshing)return;
+      var base=p.getAttribute('data-live-url')||appStatus.listenUrl||'';
+      if(!base)return;
+      refreshing=true;
+      try{
+        p.pause();
+        p.src=freshStreamUrl(base);
+        p.load();
+        var promise=p.play();
+        if(promise&&promise.finally)promise.finally(function(){setTimeout(function(){refreshing=false;},250);});
+        else setTimeout(function(){refreshing=false;},250);
+      }catch(e){
+        refreshing=false;
+      }
     });
   }
 
@@ -213,7 +242,7 @@
     if(navigator.mediaDevices&&navigator.mediaDevices.addEventListener)navigator.mediaDevices.addEventListener('devicechange',refreshDevices);
     document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible'&&startedAt&&(!wakeLock||wakeLock.released))requestWake();});
     wakeText(navigator.wakeLock&&navigator.wakeLock.request?'Supported on this browser':'Not supported by this browser');
-    renderHistory(); refreshDevices(); poll(); window.setInterval(poll,3000);
+    renderHistory(); refreshDevices(); installLivePlayer(); poll(); window.setInterval(poll,3000);
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
 })();

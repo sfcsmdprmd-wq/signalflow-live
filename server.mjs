@@ -15,6 +15,7 @@ function cleanEnv(name,fallback=''){
   return v;
 }
 const cfg={
+  serverType:cleanEnv('STREAM_SERVER_TYPE','icecast').toLowerCase(),
   port:Number(cleanEnv('PORT','8080')),
   token:cleanEnv('BROADCAST_TOKEN'),
   host:cleanEnv('ICECAST_HOST'),
@@ -56,6 +57,7 @@ function target(){
 }
 function args(){
  const common=['-hide_banner','-loglevel','warning','-i','pipe:0','-vn','-ar',cfg.rate,'-ac',cfg.channels];
+ if(cfg.serverType==='shoutcast') common.push('-legacy_icecast','1');
  if(cfg.format==='aac') return [...common,'-c:a','aac','-b:a',cfg.bitrate,'-content_type','audio/aac','-f','adts',target()];
  return [...common,'-c:a','libmp3lame','-b:a',cfg.bitrate,'-content_type','audio/mpeg','-f','mp3',target()];
 }

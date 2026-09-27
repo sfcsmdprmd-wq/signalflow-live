@@ -128,7 +128,7 @@ async function handleApi(req,res,u){
      return json(res,201,{audio:{...item,url:'/media/'+id+'?token='+encodeURIComponent(token)}});
    }catch(e){return json(res,400,{error:e.message||String(e)});}
  }
- const audioMatch=u.pathname.match(/^\/api\/audio\/([^/]+)\/(hotkey|delete)$/);
+ const audioMatch=u.pathname.match(/^\/api\/audio\/([^/]+)\/(hotkey|delete|rename)$/);
  if(audioMatch&&req.method==='POST'){
    if(!who)return json(res,401,{error:'Unauthorized'});
    const [,id,action]=audioMatch,list=audioLibrary(),idx=list.findIndex(x=>x.id===id);
@@ -144,6 +144,15 @@ async function handleApi(req,res,u){
      if(who.role!=='admin'&&list[idx].ownerId!==who.id)return json(res,403,{error:'Not allowed'});
      try{fs.unlinkSync(path.join(audioDir,list[idx].id+list[idx].ext));}catch{}
      list.splice(idx,1);writeAudioLibrary(list);return json(res,200,{ok:true});
+   }
+   if(action==='rename'){
+     if(who.role!=='admin')return json(res,403,{error:'Admin access required'});
+     let body={};try{body=await readBody(req);}catch{}
+     const name=String(body.name||'').trim().replace(/[\r\n\t]+/g,' ').slice(0,80);
+     if(!name)return json(res,400,{error:'Enter a name for this hotkey'});
+     list[idx].name=name;
+     writeAudioLibrary(list);
+     return json(res,200,{ok:true,name});
    }
  }
  if(!who||who.role!=='admin')return json(res,403,{error:'Admin access required'});

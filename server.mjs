@@ -84,35 +84,35 @@ function startShoutcast(proc,onReady,onFail){
  sock.setTimeout(10000,()=>fail(new Error('Shoutcast source handshake timed out')));
  sock.once('error',fail);
  sock.once('connect',()=>{
-   const br=String(cfg.bitrate).replace(/[^0-9]/g,'')||'128';
-   const contentType=cfg.format==='aac'?'audio/aac':'audio/mpeg';
-   const headers=[
-     cfg.pass,
-     'icy-name:'+cfg.station,
-     'icy-pub:0',
-     'icy-br:'+br,
-     'content-type:'+contentType,
-     'User-Agent: SignalFlow Live',
-     '',
-     ''
-   ].join('\\r\\n');
-   sock.write(headers);
+   // SHOUTcast v1 authenticates in two stages:
+   // 1) send only the source password
+   // 2) wait for OK2, then send icy headers and MP3 bytes
+   sock.write(cfg.pass+'\n');
  });
  sock.on('data',chunk=>{
    if(settled)return;
    reply+=chunk.toString('utf8');
-   if(reply.includes('\\n')){
-     const first=reply.split(/\\r?\\n/,1)[0].trim();
-     if(/^OK2/i.test(first)){
-       settled=true;
-       sock.setTimeout(0);
-       proc.stdout.pipe(sock);
-       proc.stdout.resume();
-       console.log('Shoutcast v1 source accepted');
-       onReady?.(sock);
-     }else if(first){
-       fail(new Error('Shoutcast rejected source: '+first.slice(0,160)));
-     }
+   if(/OK2/i.test(reply)){
+     const br=String(cfg.bitrate).replace(/[^0-9]/g,'')||'128';
+     const contentType=cfg.format==='aac'?'audio/aac':'audio/mpeg';
+     const headers=[
+       'icy-name:'+cfg.station,
+       'icy-genre:',
+       'icy-url:',
+       'icy-pub:0',
+       'icy-br:'+br,
+       'content-type:'+contentType,
+       ''
+     ].join('\n')+'\n';
+     settled=true;
+     sock.setTimeout(0);
+     sock.write(headers);
+     proc.stdout.pipe(sock);
+     proc.stdout.resume();
+     console.log('Shoutcast v1 source accepted');
+     onReady?.(sock);
+   }else if(/invalid password|bad password|denied|error/i.test(reply)){
+     fail(new Error('Shoutcast rejected source: '+reply.trim().slice(0,160)));
    }
  });
  return sock;

@@ -193,6 +193,11 @@ async function handleApi(req,res,u){
      return json(res,200,{ok:true,name});
    }
  }
+ if(u.pathname==='/api/admin/force-end'&&req.method==='POST'){
+   if(!who||who.role!=='admin')return json(res,403,{error:'Admin access required'});
+   const ended=forceEndActiveSession('Ended by administrator');
+   return json(res,200,{ok:true,ended});
+ }
  if(!who||who.role!=='admin')return json(res,403,{error:'Admin access required'});
  if(u.pathname==='/api/broadcasters'&&req.method==='GET'){
    return json(res,200,{broadcasters:broadcasters().map(publicBroadcaster),emailConfigured:emailConfigured()});
@@ -247,9 +252,22 @@ function finaliseAudit(session){
    try{const list=broadcasters(),idx=list.findIndex(x=>x.id===session.broadcaster.id);if(idx>=0){list[idx].lastBroadcastAt=end.toISOString();writeBroadcasters(list);}}catch(e){console.error('Could not update broadcaster history:',e.message||String(e));}
  }
 }
+function forceEndActiveSession(reason){
+ const session=active;
+ if(!session)return false;
+ active=null;
+ session.stopping=true;
+ clearTimeout(session.reconnectTimer);
+ try{session.ws.close(4001,reason||'Ended by administrator');}catch{}
+ try{session.proc.stdin.end();}catch{}
+ try{session.sock?.end();}catch{}
+ setTimeout(()=>{try{if(!session.proc.killed)session.proc.kill('SIGTERM');}catch{}},300).unref();
+ try{finaliseAudit(session);}catch{}
+ return true;
+}
 function serve(req,res){
  const u=new URL(req.url,'http://localhost');
- if(u.pathname==='/api/me'||u.pathname==='/api/audio'||u.pathname==='/api/broadcasters'||u.pathname==='/api/broadcast-history'||u.pathname.startsWith('/api/audio/')||u.pathname.startsWith('/api/broadcasters/')) return void handleApi(req,res,u);
+ if(u.pathname==='/api/me'||u.pathname==='/api/audio'||u.pathname==='/api/broadcasters'||u.pathname==='/api/broadcast-history'||u.pathname==='/api/admin/force-end'||u.pathname.startsWith('/api/audio/')||u.pathname.startsWith('/api/broadcasters/')) return void handleApi(req,res,u);
  if(u.pathname.startsWith('/media/')){
    const token=u.searchParams.get('token')||'',who=authenticateToken(token);
    if(!who){res.writeHead(401);return res.end('Unauthorized');}
@@ -283,7 +301,7 @@ function serve(req,res){
    const directListenUrl=proto+'://'+host+'/listen';
    return json(res,200,{
      ok:true,configured:Boolean(cfg.host&&cfg.pass),active:Boolean(active&&active.ready),stationName:cfg.station,
-     connectionState:active?active.connectionState:'idle',reconnects:active?.reconnects||0,currentBroadcaster:active?.broadcaster?.name||null,
+     connectionState:active?active.connectionState:'idle',reconnects:active?.reconnects||0,currentBroadcaster:active?.broadcaster?.name||null,currentBroadcasterId:active?.broadcaster?.id||null,currentClientId:active?.clientId||null,
      outputFormat:cfg.format,bitrate:cfg.bitrate,listenUrl:directListenUrl,directListenUrl:directListenUrl,mount:cfg.mount,lastError
    });
  }
@@ -373,12 +391,13 @@ server.on('upgrade',(req,socket,head)=>{
  if(!broadcaster){socket.write('HTTP/1.1 401 Unauthorized\r\nConnection: close\r\n\r\n');return socket.destroy();}
  if(active){socket.write('HTTP/1.1 409 Conflict\r\nConnection: close\r\n\r\n');return socket.destroy();}
  if(!cfg.host||!cfg.pass){socket.write('HTTP/1.1 503 Service Unavailable\r\nConnection: close\r\n\r\n');return socket.destroy();}
- wss.handleUpgrade(req,socket,head,ws=>{ws.broadcaster=broadcaster;wss.emit('connection',ws);});
+ const clientId=String(u.searchParams.get('client')||'').slice(0,120);
+ wss.handleUpgrade(req,socket,head,ws=>{ws.broadcaster=broadcaster;ws.clientId=clientId;wss.emit('connection',ws);});
 });
 wss.on('connection',ws=>{
  const isShoutcast=cfg.serverType==='shoutcast';
  const proc=spawn('ffmpeg',isShoutcast?encoderArgs('pipe:1'):icecastArgs(),{stdio:['pipe',isShoutcast?'pipe':'ignore','pipe']});
- const session={ws,proc,sock:null,ready:!isShoutcast,everReady:!isShoutcast,connectionState:isShoutcast?'connecting':'live',reconnects:0,reconnectTimer:null,stopping:false,since:new Date().toISOString(),broadcaster:ws.broadcaster||{id:'unknown',name:'Unknown',email:'',role:'broadcaster'}};
+ const session={ws,proc,sock:null,ready:!isShoutcast,everReady:!isShoutcast,connectionState:isShoutcast?'connecting':'live',reconnects:0,reconnectTimer:null,stopping:false,since:new Date().toISOString(),clientId:ws.clientId||'',broadcaster:ws.broadcaster||{id:'unknown',name:'Unknown',email:'',role:'broadcaster'}};
  active=session; lastError='';
  proc.stderr.setEncoding('utf8');
  proc.stderr.on('data',d=>{const t=String(d).trim();if(t){lastError=t.slice(-800);console.error(t.replaceAll(cfg.pass,'[REDACTED]'));}});

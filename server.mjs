@@ -44,7 +44,43 @@ const cfg={
 };
 let active=null,lastError='';
 const liveListeners=new Set();
+let silenceProc=null,silenceRestartTimer=null;
 const RECONNECT_DELAY_MS=2000;
+
+function writeToLiveListeners(chunk){
+  for(const listener of Array.from(liveListeners)){
+    try{
+      if(!listener.writableEnded&&!listener.destroyed)listener.write(chunk);
+      else liveListeners.delete(listener);
+    }catch{liveListeners.delete(listener);}
+  }
+}
+function silenceEncoderArgs(){
+  const layout=Number(cfg.channels)===1?'mono':'stereo';
+  const common=['-hide_banner','-loglevel','warning','-re','-f','lavfi','-i','anullsrc=r='+cfg.rate+':cl='+layout,'-vn','-ar',cfg.rate,'-ac',cfg.channels];
+  if(cfg.format==='aac')return [...common,'-c:a','aac','-b:a',cfg.bitrate,'-f','adts','pipe:1'];
+  return [...common,'-c:a','libmp3lame','-b:a',cfg.bitrate,'-f','mp3','pipe:1'];
+}
+function startSilenceEncoder(){
+  if(silenceProc)return;
+  const proc=spawn('ffmpeg',silenceEncoderArgs(),{stdio:['ignore','pipe','pipe']});
+  silenceProc=proc;
+  proc.stdout.on('data',chunk=>{
+    if(!active||!active.ready)writeToLiveListeners(chunk);
+  });
+  proc.stderr.setEncoding('utf8');
+  proc.stderr.on('data',d=>{
+    const t=String(d).trim();
+    if(t)console.error('Silence encoder:',t);
+  });
+  proc.on('exit',code=>{
+    if(silenceProc===proc)silenceProc=null;
+    console.error('Silence encoder exit',code);
+    clearTimeout(silenceRestartTimer);
+    silenceRestartTimer=setTimeout(startSilenceEncoder,2000);
+    if(silenceRestartTimer.unref)silenceRestartTimer.unref();
+  });
+}
 const dataDir=fs.existsSync('/data')?'/data':path.join(__dirname,'.data');
 const broadcastersFile=path.join(dataDir,'broadcasters.json');
 const auditFile=path.join(dataDir,'broadcast-history.json');
@@ -225,10 +261,6 @@ function serve(req,res){
    }catch{res.writeHead(404);return res.end('Not found');}
  }
  if(u.pathname==='/listen'){
-   if(!active||!active.ready){
-     res.writeHead(503,{'content-type':'text/plain','cache-control':'no-store, no-cache, must-revalidate, max-age=0','pragma':'no-cache','expires':'0','access-control-allow-origin':'*'});
-     return res.end('SignalFlow Live is off air');
-   }
    res.writeHead(200,{
      'content-type':cfg.format==='aac'?'audio/aac':'audio/mpeg',
      'cache-control':'no-store, no-cache, must-revalidate, max-age=0',
@@ -353,12 +385,7 @@ wss.on('connection',ws=>{
      if(session.sock&&session.ready&&session.sock.writable){
        try{session.sock.write(chunk);}catch{}
      }
-     for(const listener of Array.from(liveListeners)){
-       try{
-         if(!listener.writableEnded)listener.write(chunk);
-         else liveListeners.delete(listener);
-       }catch{liveListeners.delete(listener);}
-     }
+     if(session.ready)writeToLiveListeners(chunk);
    });
    connectShoutcast(session);
  }
@@ -386,4 +413,7 @@ wss.on('connection',ws=>{
  ws.on('close',stop);
  ws.on('error',e=>{lastError=e.message||String(e);stop();});
 });
-server.listen(cfg.port,'0.0.0.0',()=>console.log(`SignalFlow Live listening on :${cfg.port}`));
+server.listen(cfg.port,'0.0.0.0',()=>{
+  console.log(`SignalFlow Live listening on :${cfg.port}`);
+  startSilenceEncoder();
+});

@@ -442,12 +442,22 @@
     if(!shared.length){el.innerHTML='<div class="empty">No shared hotkeys uploaded yet.</div>';return;}
     el.innerHTML=shared.map(function(x){
       var order=x.hotkeyOrder||1;
-      return '<div class="libraryRow"><div><b>'+esc(x.name)+'</b><div class="libraryMeta">Shared hotkey · Slot '+order+'</div></div><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><select id="hkOrder_'+x.id+'" style="width:72px;margin:0;padding:8px">'+[1,2,3,4,5,6].map(function(n){return '<option value="'+n+'"'+(n===order?' selected':'')+'>'+n+'</option>';}).join('')+'</select><button class="btn secondary mini" onclick="signalFlowHotkey(\''+x.id+'\',true)">Update slot</button><button class="btn secondary mini" onclick="signalFlowHotkey(\''+x.id+'\',false)">Remove hotkey</button><button class="btn secondary mini" onclick="signalFlowDeleteAudio(\''+x.id+'\',\''+esc(x.name).replace(/'/g,'&#39;')+'\')">Delete</button></div></div>';
+      return '<div class="libraryRow"><div><b>'+esc(x.name)+'</b><div class="libraryMeta">Shared hotkey · Slot '+order+'</div></div><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><select id="hkOrder_'+x.id+'" style="width:72px;margin:0;padding:8px">'+[1,2,3,4,5,6].map(function(n){return '<option value="'+n+'"'+(n===order?' selected':'')+'>'+n+'</option>';}).join('')+'</select><button class="btn secondary mini" onclick="signalFlowHotkey(\''+x.id+'\',true)">Update slot</button><button class="btn secondary mini" onclick="signalFlowRenameHotkey(\''+x.id+'\',\''+esc(x.name).replace(/'/g,'&#39;')+'\')">Rename</button><button class="btn secondary mini" onclick="signalFlowHotkey(\''+x.id+'\',false)">Remove hotkey</button><button class="btn secondary mini" onclick="signalFlowDeleteAudio(\''+x.id+'\',\''+esc(x.name).replace(/'/g,'&#39;')+'\')">Delete</button></div></div>';
     }).join('');
   }
   window.signalFlowHotkey=function(id,enabled){
     var orderEl=byId('hkOrder_'+id),order=orderEl?Number(orderEl.value):1;
     api('/api/audio/'+id+'/hotkey',{method:'POST',body:JSON.stringify({enabled:enabled,order:order})}).then(loadAudioLibrary).catch(function(e){alert(e.message);});
+  };
+  window.signalFlowRenameHotkey=function(id,currentName){
+    if(userRole!=='admin')return;
+    var name=prompt('Rename shared hotkey',currentName||'');
+    if(name===null)return;
+    name=String(name).replace(/^\s+|\s+$/g,'');
+    if(!name){alert('Enter a name for this hotkey.');return;}
+    api('/api/audio/'+id+'/rename',{method:'POST',body:JSON.stringify({name:name})})
+      .then(function(){loadAudioLibrary();})
+      .catch(function(e){alert(e.message);});
   };
   function uploadHotkeyAudio(){
     if(userRole!=='admin')return;

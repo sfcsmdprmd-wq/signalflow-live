@@ -1,6 +1,8 @@
 import http from 'node:http';
 import net from 'node:net';
 import tls from 'node:tls';
+import crypto from 'node:crypto';
+import nodemailer from 'nodemailer';
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
@@ -31,11 +33,63 @@ const cfg={
   rate:cleanEnv('OUTPUT_SAMPLE_RATE','44100'),
   channels:cleanEnv('OUTPUT_CHANNELS','2'),
   station:cleanEnv('STATION_NAME','SignalFlow Live'),
-  listen:cleanEnv('OUTPUT_LISTEN_URL')
+  listen:cleanEnv('OUTPUT_LISTEN_URL'),
+  smtpHost:cleanEnv('SMTP_HOST'),
+  smtpPort:Number(cleanEnv('SMTP_PORT','587')),
+  smtpSecure:cleanEnv('SMTP_SECURE','false').toLowerCase()==='true',
+  smtpUser:cleanEnv('SMTP_USER'),
+  smtpPass:cleanEnv('SMTP_PASSWORD'),
+  emailFrom:cleanEnv('EMAIL_FROM'),
+  publicUrl:cleanEnv('APP_PUBLIC_URL','https://signalflow-live-web-production.up.railway.app')
 };
 let active=null,lastError='';
 const liveListeners=new Set();
 const RECONNECT_DELAY_MS=2000;
+const dataDir=fs.existsSync('/data')?'/data':path.join(__dirname,'.data');
+const broadcastersFile=path.join(dataDir,'broadcasters.json');
+const auditFile=path.join(dataDir,'broadcast-history.json');
+try{fs.mkdirSync(dataDir,{recursive:true});}catch{}
+function loadJson(file,fallback){try{return JSON.parse(fs.readFileSync(file,'utf8'));}catch{return fallback;}}
+function saveJson(file,value){fs.writeFileSync(file+'.tmp',JSON.stringify(value,null,2));fs.renameSync(file+'.tmp',file);}
+function keyHash(value){return crypto.createHash('sha256').update(String(value)).digest('hex');}
+function encryptionKey(){return crypto.createHash('sha256').update('signalflow:'+cfg.token).digest();}
+function encryptKey(value){
+ const iv=crypto.randomBytes(12),cipher=crypto.createCipheriv('aes-256-gcm',encryptionKey(),iv);
+ const enc=Buffer.concat([cipher.update(String(value),'utf8'),cipher.final()]);
+ return [iv.toString('base64url'),cipher.getAuthTag().toString('base64url'),enc.toString('base64url')].join('.');
+}
+function decryptKey(value){
+ try{
+  const [iv,tag,enc]=String(value||'').split('.');
+  const decipher=crypto.createDecipheriv('aes-256-gcm',encryptionKey(),Buffer.from(iv,'base64url'));
+  decipher.setAuthTag(Buffer.from(tag,'base64url'));
+  return Buffer.concat([decipher.update(Buffer.from(enc,'base64url')),decipher.final()]).toString('utf8');
+ }catch{return '';}
+}
+function broadcasters(){return loadJson(broadcastersFile,[]);}
+function writeBroadcasters(list){saveJson(broadcastersFile,list);}
+function auditHistory(){return loadJson(auditFile,[]);}
+function addAudit(entry){const list=auditHistory();list.unshift(entry);saveJson(auditFile,list.slice(0,1000));}
+function makeBroadcasterKey(){return 'SFL-'+crypto.randomBytes(18).toString('base64url');}
+function authenticateToken(token){
+ if(cfg.token&&token===cfg.token)return {id:'admin',name:'Administrator',email:'',role:'admin',status:'active'};
+ const h=keyHash(token||'');
+ const user=broadcasters().find(x=>x.status==='active'&&x.keyHash===h);
+ return user?{id:user.id,name:user.name,email:user.email,role:'broadcaster',status:user.status}:null;
+}
+function bearer(req){const h=String(req.headers.authorization||'');return h.startsWith('Bearer ')?h.slice(7):'';}
+function readBody(req){return new Promise((resolve,reject)=>{let b='';req.on('data',d=>{b+=d;if(b.length>100000)reject(new Error('Request too large'));});req.on('end',()=>{try{resolve(b?JSON.parse(b):{});}catch{reject(new Error('Invalid JSON'));}});req.on('error',reject);});}
+function emailConfigured(){return Boolean(cfg.smtpHost&&cfg.smtpUser&&cfg.smtpPass&&cfg.emailFrom);}
+let mailer=null;
+async function sendInvite(user,key){
+ if(!emailConfigured())return {sent:false,reason:'Email delivery is not configured yet'};
+ if(!mailer)mailer=nodemailer.createTransport({host:cfg.smtpHost,port:cfg.smtpPort,secure:cfg.smtpSecure,auth:{user:cfg.smtpUser,pass:cfg.smtpPass}});
+ const subject='Your SignalFlow Live broadcaster access';
+ const text='Hello '+user.name+',\n\nYou now have access to SignalFlow Live.\n\nOpen: '+cfg.publicUrl+'\nBroadcaster key: '+key+'\n\nHow to broadcast:\n1. Open SignalFlow Live and enter your broadcaster key.\n2. Select Microphone and choose/check your microphone.\n3. Press Go Live.\n4. Wait until the status changes to ON AIR before starting.\n5. When finished, press End Broadcast.\n\nYour key is personal to you, so please do not share it.\n';
+ await mailer.sendMail({from:cfg.emailFrom,to:user.email,subject,text});
+ return {sent:true};
+}
+function publicBroadcaster(x){return {id:x.id,name:x.name,email:x.email,status:x.status,createdAt:x.createdAt,lastBroadcastAt:x.lastBroadcastAt||null};}
 
 function json(res,code,obj){res.writeHead(code,{'content-type':'application/json','cache-control':'no-store'});res.end(JSON.stringify(obj));}
 function typeFor(f){return f.endsWith('.html')?'text/html; charset=utf-8':f.endsWith('.js')?'text/javascript; charset=utf-8':f.endsWith('.css')?'text/css; charset=utf-8':f.endsWith('.webmanifest')?'application/manifest+json':'application/octet-stream';}

@@ -169,13 +169,13 @@
       appStatus=s||{};
       var isLive=!!s.active;
       var state=s.connectionState||'idle';
-      if(byId('topState'))byId('topState').textContent=isLive?'Live':(state==='reconnecting'?'Reconnecting':state==='connecting'?'Connecting':'Relay online');
-      if(byId('sideState'))byId('sideState').textContent=isLive?'Broadcasting':(state==='reconnecting'?'Reconnecting output':state==='connecting'?'Connecting output':'Relay online');
-      if(byId('topDot'))byId('topDot').className='dot'+(isLive?' ok':'');
-      if(byId('sideDot'))byId('sideDot').className='dot'+(isLive?' ok':'');
+      var configured=!!s.configured;
+      if(byId('topState'))byId('topState').textContent=configured?'System active':'Setup required';
+      if(byId('sideState'))byId('sideState').textContent=configured?'System connected':'Setup required';
+      if(byId('topDot'))byId('topDot').className='dot'+(configured?' ok':'');
+      if(byId('sideDot'))byId('sideDot').className='dot'+(configured?' ok':'');
       if(byId('relayCheck')){byId('relayCheck').className='checkmark ok';byId('relayCheck').textContent='✓';}
       if(byId('relayText'))byId('relayText').textContent='Connected';
-      var configured=!!s.configured;
       var outputReady=isLive || (!startedAt && configured);
       if(byId('outputCheck')){byId('outputCheck').className='checkmark'+(outputReady?' ok':'');byId('outputCheck').textContent=outputReady?'✓':'3';}
       if(byId('outputText')){

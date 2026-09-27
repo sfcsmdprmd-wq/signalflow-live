@@ -92,13 +92,29 @@
   var mediaStream=null, audioCtx=null, analyser=null, recorder=null, socket=null, timerHandle=null, startedAt=0, wakeLock=null, appStatus={}, awaitingOutput=false, socketOpened=false, micMuted=false, mixDest=null, micSource=null, audioLibrary=[], userRole='broadcaster', deckSources={}, playoutProgramGain=null, playoutMonitorGain=null, micMonitorGain=null, monitorPlayout=false, monitorMic=false, playoutDucked=false, expectedMicLabel='', lastRouteMicLabel='', activeDeckNumber=0;
 
   window.signalFlowSignIn=function(){
-    var input=byId('token'), msg=byId('authMsg'), modal=byId('auth');
+    var input=byId('token'), msg=byId('authMsg'), modal=byId('auth'), button=byId('signIn');
     var value=input && input.value ? input.value.replace(/^\s+|\s+$/g,'') : '';
     if(!value){ if(msg) msg.textContent='Please enter the broadcaster key.'; return; }
     try{ localStorage.setItem('sfl.token',value); sessionStorage.removeItem('sfl.token'); }catch(e){ try{ sessionStorage.setItem('sfl.token',value); }catch(ignore){} }
-    try{if(input)input.blur();}catch(e){}
-    if(modal){ modal.className+=' hide'; modal.style.display='none'; }
-    setTimeout(function(){try{window.scrollTo(0,0);}catch(e){}},50);
+    if(msg)msg.textContent='Signing in…';
+    if(button)button.disabled=true;
+    api('/api/me').then(function(me){
+      userRole=me.role||'broadcaster';
+      all('.adminOnly').forEach(function(el){
+        if(userRole==='admin')el.classList.add('show');
+        else el.classList.remove('show');
+      });
+      if(userRole==='admin'){loadBroadcasters();loadAudit();}
+      loadAudioLibrary();
+      try{if(input)input.blur();}catch(e){}
+      if(msg)msg.textContent='';
+      if(modal){modal.classList.add('hide');modal.style.display='none';}
+      if(button)button.disabled=false;
+      setTimeout(function(){try{window.scrollTo(0,0);}catch(e){}},50);
+    }).catch(function(){
+      if(button)button.disabled=false;
+      requireFreshLogin('That broadcaster key was not accepted. Please check it and try again.');
+    });
   };
 
   function getToken(){
@@ -123,9 +139,13 @@
     if(!getToken())return;
     api('/api/me').then(function(me){
       userRole=me.role||'broadcaster';
-      if(me.role==='admin'){all('.adminOnly').forEach(function(el){el.classList.add('show');});loadBroadcasters();loadAudit();}
+      all('.adminOnly').forEach(function(el){
+        if(userRole==='admin')el.classList.add('show');
+        else el.classList.remove('show');
+      });
+      if(userRole==='admin'){loadBroadcasters();loadAudit();}
       loadAudioLibrary();
-    }).catch(function(){});
+    }).catch(function(){requireFreshLogin('Your saved broadcaster key is no longer valid. Please sign in again.');});
   }
   function loadBroadcasters(){
     var listEl=byId('broadcasterList');if(!listEl)return;

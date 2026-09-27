@@ -143,7 +143,7 @@ async function handleApi(req,res,u){
  }
  if(u.pathname==='/api/audio'&&req.method==='GET'){
    if(!who)return json(res,401,{error:'Unauthorized'});
-   const list=audioLibrary().map(x=>({id:x.id,name:x.name,mime:x.mime,size:x.size,createdAt:x.createdAt,ownerName:x.ownerName,hotkey:!!x.hotkey,hotkeyOrder:x.hotkeyOrder||null,canDelete:who.role==='admin'||x.ownerId===who.id,url:'/media/'+x.id+'?token='+encodeURIComponent(token)}));
+   const list=audioLibrary().map(x=>({id:x.id,name:x.name,mime:x.mime,size:x.size,createdAt:x.createdAt,ownerName:x.ownerName,hotkey:!!x.hotkey,hotkeyOrder:x.hotkeyOrder||null,bed:!!x.bed,canDelete:who.role==='admin'||x.ownerId===who.id,url:'/media/'+x.id+'?token='+encodeURIComponent(token)}));
    return json(res,200,{audio:list,hotkeys:list.filter(x=>x.hotkey).sort((a,b)=>(a.hotkeyOrder||99)-(b.hotkeyOrder||99))});
  }
  if(u.pathname==='/api/audio'&&req.method==='POST'){
@@ -159,7 +159,7 @@ async function handleApi(req,res,u){
      const id=crypto.randomUUID(),storedExt=ext.slice(0,10)||'.audio';
      fs.writeFileSync(path.join(audioDir,id+storedExt),data);
      const guessedMime=mime==='application/octet-stream'||!mime?(storedExt==='.m4a'||storedExt==='.mp4'?'audio/mp4':storedExt==='.wav'||storedExt==='.wave'?'audio/wav':storedExt==='.aac'?'audio/aac':storedExt==='.ogg'||storedExt==='.opus'?'audio/ogg':storedExt==='.flac'?'audio/flac':'audio/mpeg'):mime;
-     const item={id,name:path.basename(original,path.extname(original))||'Audio',originalName:original,ext:storedExt,mime:guessedMime,size:data.length,createdAt:new Date().toISOString(),ownerId:who.id,ownerName:who.name,hotkey:false,hotkeyOrder:null};
+     const item={id,name:path.basename(original,path.extname(original))||'Audio',originalName:original,ext:storedExt,mime:guessedMime,size:data.length,createdAt:new Date().toISOString(),ownerId:who.id,ownerName:who.name,hotkey:false,hotkeyOrder:null,bed:false};
      const list=audioLibrary();list.push(item);writeAudioLibrary(list);
      return json(res,201,{audio:{...item,url:'/media/'+id+'?token='+encodeURIComponent(token)}});
    }catch(e){return json(res,400,{error:e.message||String(e)});}
@@ -174,6 +174,8 @@ async function handleApi(req,res,u){
      let body={};try{body=await readBody(req);}catch{}
      list[idx].hotkey=!!body.enabled;
      list[idx].hotkeyOrder=list[idx].hotkey?Math.max(1,Math.min(12,Number(body.order)||1)):null;
+     if(list[idx].hotkey&&typeof body.bed==='boolean')list[idx].bed=body.bed;
+     if(!list[idx].hotkey)list[idx].bed=false;
      writeAudioLibrary(list);return json(res,200,{ok:true});
    }
    if(action==='delete'){

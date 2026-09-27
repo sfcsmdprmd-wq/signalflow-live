@@ -35,6 +35,7 @@ const cfg={
 };
 let active=null,lastError='';
 const liveListeners=new Set();
+const RECONNECT_DELAY_MS=2000;
 
 function json(res,code,obj){res.writeHead(code,{'content-type':'application/json','cache-control':'no-store'});res.end(JSON.stringify(obj));}
 function typeFor(f){return f.endsWith('.html')?'text/html; charset=utf-8':f.endsWith('.js')?'text/javascript; charset=utf-8':f.endsWith('.css')?'text/css; charset=utf-8':f.endsWith('.webmanifest')?'application/manifest+json':'application/octet-stream';}
@@ -65,6 +66,7 @@ function serve(req,res){
    const directListenUrl=proto+'://'+host+'/listen';
    return json(res,200,{
      ok:true,configured:Boolean(cfg.host&&cfg.pass),active:Boolean(active&&active.ready),stationName:cfg.station,
+     connectionState:active?active.connectionState:'idle',reconnects:active?.reconnects||0,
      outputFormat:cfg.format,bitrate:cfg.bitrate,listenUrl:directListenUrl,directListenUrl:directListenUrl,mount:cfg.mount,lastError
    });
  }
@@ -92,30 +94,32 @@ function icecastArgs(){
  if(cfg.format==='aac') return [...common,'-c:a','aac','-b:a',cfg.bitrate,'-content_type','audio/aac','-f','adts',target()];
  return [...common,'-c:a','libmp3lame','-b:a',cfg.bitrate,'-content_type','audio/mpeg','-f','mp3',target()];
 }
-function startShoutcast(proc,onReady,onFail){
+function connectShoutcast(session){
+ if(!session||session.stopping||session.ws.readyState!==1)return;
+ session.connectionState=session.everReady?'reconnecting':'connecting';
+ session.ready=false;
  const connectOpts={host:cfg.host,port:cfg.icePort};
  const sock=cfg.tls?tls.connect({...connectOpts,servername:cfg.host}):net.connect(connectOpts);
- let settled=false,reply='';
- const fail=(err)=>{
-   if(settled)return;
-   settled=true;
-   const msg=err?.message||String(err||'Shoutcast connection failed');
-   lastError=msg;
-   console.error('Shoutcast source error:',msg);
+ session.sock=sock;
+ let accepted=false,reply='',finished=false;
+ const scheduleReconnect=(reason)=>{
+   if(finished)return;
+   finished=true;
    try{sock.destroy();}catch{}
-   try{proc.kill('SIGTERM');}catch{}
-   onFail?.(msg);
+   if(session.stopping||active!==session)return;
+   session.ready=false;
+   session.connectionState='reconnecting';
+   session.reconnects=(session.reconnects||0)+1;
+   if(reason){lastError=reason;console.error('Shoutcast source connection lost:',reason);}
+   clearTimeout(session.reconnectTimer);
+   session.reconnectTimer=setTimeout(()=>connectShoutcast(session),RECONNECT_DELAY_MS);
  };
- sock.setTimeout(10000,()=>fail(new Error('Shoutcast source handshake timed out')));
- sock.once('error',fail);
- sock.once('connect',()=>{
-   // SHOUTcast v1 authenticates in two stages:
-   // 1) send only the source password
-   // 2) wait for OK2, then send icy headers and MP3 bytes
-   sock.write(cfg.pass+'\n');
- });
+ sock.setTimeout(10000,()=>scheduleReconnect('Shoutcast source handshake timed out'));
+ sock.once('error',e=>scheduleReconnect(e?.message||String(e)));
+ sock.once('close',()=>{if(accepted)scheduleReconnect('Shoutcast source connection closed');});
+ sock.once('connect',()=>sock.write(cfg.pass+'\n'));
  sock.on('data',chunk=>{
-   if(settled)return;
+   if(accepted||finished)return;
    reply+=chunk.toString('utf8');
    if(/OK2/i.test(reply)){
      const br=String(cfg.bitrate).replace(/[^0-9]/g,'')||'128';
@@ -129,30 +133,18 @@ function startShoutcast(proc,onReady,onFail){
        'content-type:'+contentType,
        ''
      ].join('\n')+'\n';
-     settled=true;
+     accepted=true;
      sock.setTimeout(0);
      sock.write(headers);
-     proc.stdout.on('data',chunk=>{
-       if(sock.writable){
-         try{sock.write(chunk);}catch{}
-       }
-       for(const listener of Array.from(liveListeners)){
-         try{
-           if(!listener.writableEnded)listener.write(chunk);
-           else liveListeners.delete(listener);
-         }catch{
-           liveListeners.delete(listener);
-         }
-       }
-     });
-     proc.stdout.resume();
+     session.ready=true;
+     session.everReady=true;
+     session.connectionState='live';
+     lastError='';
      console.log('Shoutcast v1 source accepted');
-     onReady?.(sock);
    }else if(/invalid password|bad password|denied|error/i.test(reply)){
-     fail(new Error('Shoutcast rejected source: '+reply.trim().slice(0,160)));
+     scheduleReconnect('Shoutcast rejected source: '+reply.trim().slice(0,160));
    }
  });
- return sock;
 }
 const server=http.createServer(serve);
 const wss=new WebSocketServer({noServer:true});
@@ -168,20 +160,44 @@ server.on('upgrade',(req,socket,head)=>{
 wss.on('connection',ws=>{
  const isShoutcast=cfg.serverType==='shoutcast';
  const proc=spawn('ffmpeg',isShoutcast?encoderArgs('pipe:1'):icecastArgs(),{stdio:['pipe',isShoutcast?'pipe':'ignore','pipe']});
- active={ws,proc,sock:null,ready:!isShoutcast,since:new Date().toISOString()}; lastError='';
- if(isShoutcast) proc.stdout.pause();
+ const session={ws,proc,sock:null,ready:!isShoutcast,everReady:!isShoutcast,connectionState:isShoutcast?'connecting':'live',reconnects:0,reconnectTimer:null,stopping:false,since:new Date().toISOString()};
+ active=session; lastError='';
  proc.stderr.setEncoding('utf8');
  proc.stderr.on('data',d=>{const t=String(d).trim();if(t){lastError=t.slice(-800);console.error(t.replaceAll(cfg.pass,'[REDACTED]'));}});
- proc.on('exit',(code)=>{console.log('ffmpeg exit',code);if(active?.proc===proc){try{active.sock?.destroy();}catch{}active=null;}});
  if(isShoutcast){
-   const sock=startShoutcast(proc,
-     s=>{if(active?.proc===proc){active.sock=s;active.ready=true;}},
-     ()=>{try{ws.close(1011,'Shoutcast source rejected');}catch{}}
-   );
-   if(active?.proc===proc)active.sock=sock;
+   proc.stdout.on('data',chunk=>{
+     if(session.sock&&session.ready&&session.sock.writable){
+       try{session.sock.write(chunk);}catch{}
+     }
+     for(const listener of Array.from(liveListeners)){
+       try{
+         if(!listener.writableEnded)listener.write(chunk);
+         else liveListeners.delete(listener);
+       }catch{liveListeners.delete(listener);}
+     }
+   });
+   connectShoutcast(session);
  }
+ proc.on('exit',(code)=>{
+   console.log('ffmpeg exit',code);
+   if(active===session){
+     session.stopping=true;
+     clearTimeout(session.reconnectTimer);
+     try{session.sock?.destroy();}catch{}
+     active=null;
+   }
+ });
  ws.on('message',d=>{if(proc.stdin.writable)proc.stdin.write(Buffer.isBuffer(d)?d:Buffer.from(d));});
- const stop=()=>{if(active?.ws!==ws)return;try{proc.stdin.end();}catch{}try{active.sock?.end();}catch{}setTimeout(()=>{if(!proc.killed)proc.kill('SIGTERM')},800).unref();active=null;};
- ws.on('close',stop);ws.on('error',e=>{lastError=e.message||String(e);stop();});
+ const stop=()=>{
+   if(active!==session)return;
+   session.stopping=true;
+   clearTimeout(session.reconnectTimer);
+   try{proc.stdin.end();}catch{}
+   try{session.sock?.end();}catch{}
+   setTimeout(()=>{if(!proc.killed)proc.kill('SIGTERM')},800).unref();
+   active=null;
+ };
+ ws.on('close',stop);
+ ws.on('error',e=>{lastError=e.message||String(e);stop();});
 });
 server.listen(cfg.port,'0.0.0.0',()=>console.log(`SignalFlow Live listening on :${cfg.port}`));

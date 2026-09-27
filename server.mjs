@@ -48,7 +48,9 @@ const RECONNECT_DELAY_MS=2000;
 const dataDir=fs.existsSync('/data')?'/data':path.join(__dirname,'.data');
 const broadcastersFile=path.join(dataDir,'broadcasters.json');
 const auditFile=path.join(dataDir,'broadcast-history.json');
-try{fs.mkdirSync(dataDir,{recursive:true});}catch{}
+const audioFile=path.join(dataDir,'audio-library.json');
+const audioDir=path.join(dataDir,'audio');
+try{fs.mkdirSync(dataDir,{recursive:true});fs.mkdirSync(audioDir,{recursive:true});}catch{}
 function loadJson(file,fallback){try{return JSON.parse(fs.readFileSync(file,'utf8'));}catch{return fallback;}}
 function saveJson(file,value){fs.writeFileSync(file+'.tmp',JSON.stringify(value,null,2));fs.renameSync(file+'.tmp',file);}
 function keyHash(value){return crypto.createHash('sha256').update(String(value)).digest('hex');}
@@ -70,6 +72,10 @@ function broadcasters(){return loadJson(broadcastersFile,[]);}
 function writeBroadcasters(list){saveJson(broadcastersFile,list);}
 function auditHistory(){return loadJson(auditFile,[]);}
 function addAudit(entry){const list=auditHistory();list.unshift(entry);saveJson(auditFile,list.slice(0,1000));}
+function audioLibrary(){return loadJson(audioFile,[]);}
+function writeAudioLibrary(list){saveJson(audioFile,list);}
+function safeAudioName(name){return String(name||'audio').replace(/[^a-zA-Z0-9._ -]/g,'_').slice(0,120);}
+function readBinary(req,maxBytes=50*1024*1024){return new Promise((resolve,reject)=>{const chunks=[];let size=0;req.on('data',d=>{size+=d.length;if(size>maxBytes){reject(new Error('Audio file is too large'));req.destroy();return;}chunks.push(d);});req.on('end',()=>resolve(Buffer.concat(chunks)));req.on('error',reject);});}
 function makeBroadcasterKey(){return 'SFL-'+crypto.randomBytes(18).toString('base64url');}
 function authenticateToken(token){
  if(cfg.token&&token===cfg.token)return {id:'admin',name:'Administrator',email:'',role:'admin',status:'active'};
@@ -98,6 +104,44 @@ async function handleApi(req,res,u){
  if(u.pathname==='/api/me'){
    if(!who)return json(res,401,{error:'Unauthorized'});
    return json(res,200,{id:who.id,name:who.name,email:who.email,role:who.role});
+ }
+ if(u.pathname==='/api/audio'&&req.method==='GET'){
+   if(!who)return json(res,401,{error:'Unauthorized'});
+   const list=audioLibrary().map(x=>({id:x.id,name:x.name,mime:x.mime,size:x.size,createdAt:x.createdAt,ownerName:x.ownerName,hotkey:!!x.hotkey,hotkeyOrder:x.hotkeyOrder||null,url:'/media/'+x.id+'?token='+encodeURIComponent(token)}));
+   return json(res,200,{audio:list,hotkeys:list.filter(x=>x.hotkey).sort((a,b)=>(a.hotkeyOrder||99)-(b.hotkeyOrder||99))});
+ }
+ if(u.pathname==='/api/audio'&&req.method==='POST'){
+   if(!who)return json(res,401,{error:'Unauthorized'});
+   try{
+     const mime=String(req.headers['content-type']||'').toLowerCase();
+     if(!/^audio\//.test(mime)&&mime!=='application/octet-stream')return json(res,415,{error:'Please upload an audio file'});
+     const original=safeAudioName(decodeURIComponent(String(req.headers['x-file-name']||'audio')));
+     const data=await readBinary(req);
+     if(!data.length)return json(res,400,{error:'The audio file was empty'});
+     const id=crypto.randomUUID(),ext=path.extname(original).slice(0,10)||'.audio';
+     fs.writeFileSync(path.join(audioDir,id+ext),data);
+     const item={id,name:path.basename(original,path.extname(original))||'Audio',originalName:original,ext,mime:mime==='application/octet-stream'?'audio/mpeg':mime,size:data.length,createdAt:new Date().toISOString(),ownerId:who.id,ownerName:who.name,hotkey:false,hotkeyOrder:null};
+     const list=audioLibrary();list.push(item);writeAudioLibrary(list);
+     return json(res,201,{audio:{...item,url:'/media/'+id+'?token='+encodeURIComponent(token)}});
+   }catch(e){return json(res,400,{error:e.message||String(e)});}
+ }
+ const audioMatch=u.pathname.match(/^\/api\/audio\/([^/]+)\/(hotkey|delete)$/);
+ if(audioMatch&&req.method==='POST'){
+   if(!who)return json(res,401,{error:'Unauthorized'});
+   const [,id,action]=audioMatch,list=audioLibrary(),idx=list.findIndex(x=>x.id===id);
+   if(idx<0)return json(res,404,{error:'Audio not found'});
+   if(action==='hotkey'){
+     if(who.role!=='admin')return json(res,403,{error:'Admin access required'});
+     let body={};try{body=await readBody(req);}catch{}
+     list[idx].hotkey=!!body.enabled;
+     list[idx].hotkeyOrder=list[idx].hotkey?Math.max(1,Math.min(12,Number(body.order)||1)):null;
+     writeAudioLibrary(list);return json(res,200,{ok:true});
+   }
+   if(action==='delete'){
+     if(who.role!=='admin'&&list[idx].ownerId!==who.id)return json(res,403,{error:'Not allowed'});
+     try{fs.unlinkSync(path.join(audioDir,list[idx].id+list[idx].ext));}catch{}
+     list.splice(idx,1);writeAudioLibrary(list);return json(res,200,{ok:true});
+   }
  }
  if(!who||who.role!=='admin')return json(res,403,{error:'Admin access required'});
  if(u.pathname==='/api/broadcasters'&&req.method==='GET'){
@@ -155,7 +199,19 @@ function finaliseAudit(session){
 }
 function serve(req,res){
  const u=new URL(req.url,'http://localhost');
- if(u.pathname==='/api/me'||u.pathname==='/api/broadcasters'||u.pathname==='/api/broadcast-history'||u.pathname.startsWith('/api/broadcasters/')) return void handleApi(req,res,u);
+ if(u.pathname==='/api/me'||u.pathname==='/api/audio'||u.pathname==='/api/broadcasters'||u.pathname==='/api/broadcast-history'||u.pathname.startsWith('/api/audio/')||u.pathname.startsWith('/api/broadcasters/')) return void handleApi(req,res,u);
+ if(u.pathname.startsWith('/media/')){
+   const token=u.searchParams.get('token')||'',who=authenticateToken(token);
+   if(!who){res.writeHead(401);return res.end('Unauthorized');}
+   const id=u.pathname.slice('/media/'.length),item=audioLibrary().find(x=>x.id===id);
+   if(!item){res.writeHead(404);return res.end('Not found');}
+   const file=path.join(audioDir,item.id+item.ext);
+   try{
+     const stat=fs.statSync(file);
+     res.writeHead(200,{'content-type':item.mime||'audio/mpeg','content-length':stat.size,'accept-ranges':'bytes','cache-control':'private, max-age=3600'});
+     return fs.createReadStream(file).pipe(res);
+   }catch{res.writeHead(404);return res.end('Not found');}
+ }
  if(u.pathname==='/listen'){
    if(!active||!active.ready){
      res.writeHead(503,{'content-type':'text/plain','cache-control':'no-store, no-cache, must-revalidate, max-age=0','pragma':'no-cache','expires':'0','access-control-allow-origin':'*'});

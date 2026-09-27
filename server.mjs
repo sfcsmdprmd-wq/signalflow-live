@@ -34,14 +34,34 @@ const cfg={
   listen:cleanEnv('OUTPUT_LISTEN_URL')
 };
 let active=null,lastError='';
+const liveListeners=new Set();
 
 function json(res,code,obj){res.writeHead(code,{'content-type':'application/json','cache-control':'no-store'});res.end(JSON.stringify(obj));}
 function typeFor(f){return f.endsWith('.html')?'text/html; charset=utf-8':f.endsWith('.js')?'text/javascript; charset=utf-8':f.endsWith('.css')?'text/css; charset=utf-8':f.endsWith('.webmanifest')?'application/manifest+json':'application/octet-stream';}
 function serve(req,res){
  const u=new URL(req.url,'http://localhost');
+ if(u.pathname==='/listen'){
+   if(!active||!active.ready){
+     res.writeHead(503,{'content-type':'text/plain','cache-control':'no-store, no-cache, must-revalidate, max-age=0','pragma':'no-cache','expires':'0','access-control-allow-origin':'*'});
+     return res.end('SignalFlow Live is off air');
+   }
+   res.writeHead(200,{
+     'content-type':cfg.format==='aac'?'audio/aac':'audio/mpeg',
+     'cache-control':'no-store, no-cache, must-revalidate, max-age=0',
+     'pragma':'no-cache',
+     'expires':'0',
+     'access-control-allow-origin':'*',
+     'x-accel-buffering':'no',
+     'connection':'keep-alive'
+   });
+   if(res.flushHeaders)res.flushHeaders();
+   liveListeners.add(res);
+   req.on('close',()=>liveListeners.delete(res));
+   return;
+ }
  if(u.pathname==='/api/status') return json(res,200,{
    ok:true,configured:Boolean(cfg.host&&cfg.pass),active:Boolean(active&&active.ready),stationName:cfg.station,
-   outputFormat:cfg.format,bitrate:cfg.bitrate,listenUrl:cfg.listen,mount:cfg.mount,lastError
+   outputFormat:cfg.format,bitrate:cfg.bitrate,listenUrl:(active&&active.ready?'/listen':(cfg.listen||'/listen')),directListenUrl:'/listen',mount:cfg.mount,lastError
  });
  let p=u.pathname==='/'?'/index.html':u.pathname;
  p=path.normalize(p).replace(/^(..[/\\])+/, '');
@@ -107,7 +127,19 @@ function startShoutcast(proc,onReady,onFail){
      settled=true;
      sock.setTimeout(0);
      sock.write(headers);
-     proc.stdout.pipe(sock);
+     proc.stdout.on('data',chunk=>{
+       if(sock.writable){
+         try{sock.write(chunk);}catch{}
+       }
+       for(const listener of Array.from(liveListeners)){
+         try{
+           if(!listener.writableEnded)listener.write(chunk);
+           else liveListeners.delete(listener);
+         }catch{
+           liveListeners.delete(listener);
+         }
+       }
+     });
      proc.stdout.resume();
      console.log('Shoutcast v1 source accepted');
      onReady?.(sock);

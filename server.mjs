@@ -107,7 +107,7 @@ async function handleApi(req,res,u){
  }
  if(u.pathname==='/api/audio'&&req.method==='GET'){
    if(!who)return json(res,401,{error:'Unauthorized'});
-   const list=audioLibrary().map(x=>({id:x.id,name:x.name,mime:x.mime,size:x.size,createdAt:x.createdAt,ownerName:x.ownerName,hotkey:!!x.hotkey,hotkeyOrder:x.hotkeyOrder||null,url:'/media/'+x.id+'?token='+encodeURIComponent(token)}));
+   const list=audioLibrary().map(x=>({id:x.id,name:x.name,mime:x.mime,size:x.size,createdAt:x.createdAt,ownerName:x.ownerName,hotkey:!!x.hotkey,hotkeyOrder:x.hotkeyOrder||null,canDelete:who.role==='admin'||x.ownerId===who.id,url:'/media/'+x.id+'?token='+encodeURIComponent(token)}));
    return json(res,200,{audio:list,hotkeys:list.filter(x=>x.hotkey).sort((a,b)=>(a.hotkeyOrder||99)-(b.hotkeyOrder||99))});
  }
  if(u.pathname==='/api/audio'&&req.method==='POST'){

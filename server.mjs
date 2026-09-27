@@ -114,13 +114,16 @@ async function handleApi(req,res,u){
    if(!who)return json(res,401,{error:'Unauthorized'});
    try{
      const mime=String(req.headers['content-type']||'').toLowerCase();
-     if(!/^audio\//.test(mime)&&mime!=='application/octet-stream')return json(res,415,{error:'Please upload an audio file'});
      const original=safeAudioName(decodeURIComponent(String(req.headers['x-file-name']||'audio')));
+     const ext=path.extname(original).toLowerCase();
+     const allowedExts=new Set(['.mp3','.m4a','.aac','.wav','.wave','.aif','.aiff','.flac','.ogg','.opus','.mp4']);
+     if(!/^audio\//.test(mime)&&mime!=='application/octet-stream'&&!allowedExts.has(ext))return json(res,415,{error:'Please upload a supported audio file'});
      const data=await readBinary(req);
      if(!data.length)return json(res,400,{error:'The audio file was empty'});
-     const id=crypto.randomUUID(),ext=path.extname(original).slice(0,10)||'.audio';
-     fs.writeFileSync(path.join(audioDir,id+ext),data);
-     const item={id,name:path.basename(original,path.extname(original))||'Audio',originalName:original,ext,mime:mime==='application/octet-stream'?'audio/mpeg':mime,size:data.length,createdAt:new Date().toISOString(),ownerId:who.id,ownerName:who.name,hotkey:false,hotkeyOrder:null};
+     const id=crypto.randomUUID(),storedExt=ext.slice(0,10)||'.audio';
+     fs.writeFileSync(path.join(audioDir,id+storedExt),data);
+     const guessedMime=mime==='application/octet-stream'||!mime?(storedExt==='.m4a'||storedExt==='.mp4'?'audio/mp4':storedExt==='.wav'||storedExt==='.wave'?'audio/wav':storedExt==='.aac'?'audio/aac':storedExt==='.ogg'||storedExt==='.opus'?'audio/ogg':storedExt==='.flac'?'audio/flac':'audio/mpeg'):mime;
+     const item={id,name:path.basename(original,path.extname(original))||'Audio',originalName:original,ext:storedExt,mime:guessedMime,size:data.length,createdAt:new Date().toISOString(),ownerId:who.id,ownerName:who.name,hotkey:false,hotkeyOrder:null};
      const list=audioLibrary();list.push(item);writeAudioLibrary(list);
      return json(res,201,{audio:{...item,url:'/media/'+id+'?token='+encodeURIComponent(token)}});
    }catch(e){return json(res,400,{error:e.message||String(e)});}

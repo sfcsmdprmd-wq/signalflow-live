@@ -49,9 +49,9 @@
 <div class="panel audioPanel">
 <div class="headline"><div><div class="muted">PLAYOUT</div><h2>Audio players</h2></div><div class="muted">3 decks + shared hotkeys</div></div>
 <div class="decks">
-  <div class="deck" data-deck="1"><div class="deckHead"><span class="deckTitle">Player 1</span><span class="deckTime" id="deckTime1">00:00 / 00:00</span></div><select id="deckSelect1"><option value="">Load audio…</option></select><div class="deckProgress"><span id="deckProgress1"></span></div><div class="deckBtns"><button class="btn secondary mini deckPlay" id="deckPlay1" type="button" aria-label="Play" title="Play">▶</button><button class="btn secondary mini deckPause" id="deckPause1" type="button" aria-label="Pause or resume" title="Pause / Resume">⏸</button><button class="btn secondary mini deckStop" id="deckStop1" type="button" aria-label="Stop" title="Stop">■</button><button class="btn secondary mini deckEject" id="deckEject1" type="button" aria-label="Eject" title="Eject">⏏</button></div><audio id="deckAudio1" preload="auto"></audio></div>
-  <div class="deck" data-deck="2"><div class="deckHead"><span class="deckTitle">Player 2</span><span class="deckTime" id="deckTime2">00:00 / 00:00</span></div><select id="deckSelect2"><option value="">Load audio…</option></select><div class="deckProgress"><span id="deckProgress2"></span></div><div class="deckBtns"><button class="btn secondary mini deckPlay" id="deckPlay2" type="button" aria-label="Play" title="Play">▶</button><button class="btn secondary mini deckPause" id="deckPause2" type="button" aria-label="Pause or resume" title="Pause / Resume">⏸</button><button class="btn secondary mini deckStop" id="deckStop2" type="button" aria-label="Stop" title="Stop">■</button><button class="btn secondary mini deckEject" id="deckEject2" type="button" aria-label="Eject" title="Eject">⏏</button></div><audio id="deckAudio2" preload="auto"></audio></div>
-  <div class="deck" data-deck="3"><div class="deckHead"><span class="deckTitle">Player 3</span><span class="deckTime" id="deckTime3">00:00 / 00:00</span></div><select id="deckSelect3"><option value="">Load audio…</option></select><div class="deckProgress"><span id="deckProgress3"></span></div><div class="deckBtns"><button class="btn secondary mini deckPlay" id="deckPlay3" type="button" aria-label="Play" title="Play">▶</button><button class="btn secondary mini deckPause" id="deckPause3" type="button" aria-label="Pause or resume" title="Pause / Resume">⏸</button><button class="btn secondary mini deckStop" id="deckStop3" type="button" aria-label="Stop" title="Stop">■</button><button class="btn secondary mini deckEject" id="deckEject3" type="button" aria-label="Eject" title="Eject">⏏</button></div><audio id="deckAudio3" preload="auto"></audio></div>
+  <div class="deck" data-deck="1"><div class="deckHead"><span class="deckTitle">Player 1</span><span class="deckTime" id="deckTime1">00:00 / 00:00</span></div><select id="deckSelect1"><option value="">Load audio…</option></select><div class="deckProgress"><span id="deckProgress1"></span></div><div class="deckBtns"><button class="btn secondary mini deckPlay" id="deckPlay1" type="button" aria-label="Play" title="Play">▶</button><button class="btn secondary mini deckPause" id="deckPause1" type="button" aria-label="Pause or resume" title="Pause / Resume">Ⅱ</button><button class="btn secondary mini deckStop" id="deckStop1" type="button" aria-label="Stop" title="Stop">■</button><button class="btn secondary mini deckEject" id="deckEject1" type="button" aria-label="Eject" title="Eject">⏏</button></div><audio id="deckAudio1" preload="auto"></audio></div>
+  <div class="deck" data-deck="2"><div class="deckHead"><span class="deckTitle">Player 2</span><span class="deckTime" id="deckTime2">00:00 / 00:00</span></div><select id="deckSelect2"><option value="">Load audio…</option></select><div class="deckProgress"><span id="deckProgress2"></span></div><div class="deckBtns"><button class="btn secondary mini deckPlay" id="deckPlay2" type="button" aria-label="Play" title="Play">▶</button><button class="btn secondary mini deckPause" id="deckPause2" type="button" aria-label="Pause or resume" title="Pause / Resume">Ⅱ</button><button class="btn secondary mini deckStop" id="deckStop2" type="button" aria-label="Stop" title="Stop">■</button><button class="btn secondary mini deckEject" id="deckEject2" type="button" aria-label="Eject" title="Eject">⏏</button></div><audio id="deckAudio2" preload="auto"></audio></div>
+  <div class="deck" data-deck="3"><div class="deckHead"><span class="deckTitle">Player 3</span><span class="deckTime" id="deckTime3">00:00 / 00:00</span></div><select id="deckSelect3"><option value="">Load audio…</option></select><div class="deckProgress"><span id="deckProgress3"></span></div><div class="deckBtns"><button class="btn secondary mini deckPlay" id="deckPlay3" type="button" aria-label="Play" title="Play">▶</button><button class="btn secondary mini deckPause" id="deckPause3" type="button" aria-label="Pause or resume" title="Pause / Resume">Ⅱ</button><button class="btn secondary mini deckStop" id="deckStop3" type="button" aria-label="Stop" title="Stop">■</button><button class="btn secondary mini deckEject" id="deckEject3" type="button" aria-label="Eject" title="Eject">⏏</button></div><audio id="deckAudio3" preload="auto"></audio></div>
 </div>
 <div style="margin-top:18px"><div class="muted">SHARED HOTKEYS</div><div class="hotkeys" id="hotkeys"><span class="muted">No hotkeys loaded.</span></div></div>
 
@@ -426,7 +426,7 @@
     if(item&&item.url){decodeMonitorAudio(item.url,function(buffer){deckMonitorBuffers[n]=buffer;if(buffer&&monitorPlayout&&!el.paused)startDeckMonitor(n);});}
     if(byId('deckProgress'+n))byId('deckProgress'+n).style.width='0';
     if(byId('deckTime'+n))byId('deckTime'+n).textContent='00:00 / 00:00';
-    var pauseButton=byId('deckPause'+n);if(pauseButton){pauseButton.textContent='⏸';pauseButton.title='Pause / Resume';pauseButton.setAttribute('aria-label','Pause or resume');}
+    var pauseButton=byId('deckPause'+n);if(pauseButton){pauseButton.textContent='Ⅱ';pauseButton.title='Pause / Resume';pauseButton.setAttribute('aria-label','Pause or resume');}
     ensureAudioGraph();
   }
   function playDeck(n){
@@ -435,7 +435,7 @@
     try{if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume();}catch(e){}
     deckPlayStartedAt[n]=Date.now()-Math.round((el.currentTime||0)*1000);
     var p=el.play();
-    var pauseButton=byId('deckPause'+n);if(pauseButton){pauseButton.textContent='⏸';pauseButton.title='Pause';pauseButton.setAttribute('aria-label','Pause');}
+    var pauseButton=byId('deckPause'+n);if(pauseButton){pauseButton.textContent='Ⅱ';pauseButton.title='Pause';pauseButton.setAttribute('aria-label','Pause');}
     startDeckMonitor(n);
     activeDeckNumber=n;
     updatePlayoutDock(n);
@@ -447,7 +447,7 @@
       deckPlayStartedAt[n]=Date.now()-Math.round((el.currentTime||0)*1000);
       try{var p=el.play();if(p&&p.catch)p.catch(function(){});}catch(e){}
       if(monitorPlayout)startDeckMonitor(n);
-      if(button){button.textContent='⏸';button.title='Pause';button.setAttribute('aria-label','Pause');}
+      if(button){button.textContent='Ⅱ';button.title='Pause';button.setAttribute('aria-label','Pause');}
       activeDeckNumber=n;updatePlayoutDock(n);
     }else{
       try{el.pause();}catch(e){}
@@ -462,7 +462,7 @@
     deckPlayStartedAt[n]=0;
     try{el.pause();el.currentTime=0;}catch(e){}
     stopDeckMonitor(n);
-    if(button){button.textContent='⏸';button.title='Pause / Resume';button.setAttribute('aria-label','Pause or resume');}
+    if(button){button.textContent='Ⅱ';button.title='Pause / Resume';button.setAttribute('aria-label','Pause or resume');}
     var deck=el.closest?el.closest('.deck'):null;if(deck)deck.classList.remove('ending');
     refreshDockAfterStop(n);
   }
@@ -476,7 +476,7 @@
     if(sel)sel.value='';
     if(byId('deckProgress'+n))byId('deckProgress'+n).style.width='0';
     if(byId('deckTime'+n))byId('deckTime'+n).textContent='00:00 / 00:00';
-    var pauseButton=byId('deckPause'+n);if(pauseButton){pauseButton.textContent='⏸';pauseButton.title='Pause / Resume';pauseButton.setAttribute('aria-label','Pause or resume');}
+    var pauseButton=byId('deckPause'+n);if(pauseButton){pauseButton.textContent='Ⅱ';pauseButton.title='Pause / Resume';pauseButton.setAttribute('aria-label','Pause or resume');}
     var deck=el.closest?el.closest('.deck'):null;if(deck)deck.classList.remove('ending');
     if(activeDeckNumber===n){
       activeDeckNumber=0;
@@ -517,7 +517,7 @@
         var deck=el.closest?el.closest('.deck'):null;if(deck)deck.classList.remove('ending');
         deckPlayStartedAt[n]=0;
         stopDeckMonitor(n);
-        var pauseButton=byId('deckPause'+n);if(pauseButton){pauseButton.textContent='⏸';pauseButton.title='Pause / Resume';pauseButton.setAttribute('aria-label','Pause or resume');}
+        var pauseButton=byId('deckPause'+n);if(pauseButton){pauseButton.textContent='Ⅱ';pauseButton.title='Pause / Resume';pauseButton.setAttribute('aria-label','Pause or resume');}
         refreshDockAfterStop(n);
       });
     }

@@ -6,8 +6,8 @@
 <title>SignalFlow Live</title>
 <style>
 :root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#f5f7fa;background:#080b0f;--bg:#080b0f;--panel:#11161d;--panel2:#151b23;--line:#252d38;--muted:#8d98a7;--red:#ff3b45;--green:#29d17d}
-*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 70% -20%,#172231 0,#0b1016 38%,#080b0f 70%);color:#f5f7fa}button,input,select{font:inherit}input,select{font-size:16px}body{-webkit-text-size-adjust:100%}.shell{min-height:100vh;display:grid;grid-template-columns:250px 1fr}.side{height:100vh;position:sticky;top:0;padding:24px 17px;background:#090d12;border-right:1px solid #202833;display:flex;flex-direction:column}.brand{display:flex;align-items:center;gap:11px;margin-bottom:28px}.mark{width:42px;height:42px;border-radius:13px;background:linear-gradient(145deg,#ff4c54,#c31828);display:flex;align-items:center;justify-content:center;gap:3px}.mark i{display:block;width:3px;background:white;border-radius:5px}.mark i:nth-child(1){height:12px}.mark i:nth-child(2){height:23px}.mark i:nth-child(3){height:17px}.mark i:nth-child(4){height:9px}.brand strong{letter-spacing:.08em}.brand small{display:block;color:#ff5960;font-weight:900;letter-spacing:.2em;margin-top:3px}.nav{display:grid;gap:8px}.nav button{border:1px solid transparent;background:transparent;color:#8995a5;padding:12px 13px;border-radius:12px;text-align:left;font-weight:750}.nav button.active{color:white;background:#151b23;border-color:#252f3b;box-shadow:inset 3px 0 0 var(--red)}.sidefoot{margin-top:auto}.status{padding:13px;border:1px solid #222b35;background:#10151c;border-radius:12px;font-size:12px;color:#9ca7b5}.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#6d7784;margin-right:7px}.dot.ok{background:var(--green)}main{min-width:0}.top{height:82px;border-bottom:1px solid #202833;display:flex;align-items:center;justify-content:space-between;padding:0 30px;background:rgba(8,11,15,.78);backdrop-filter:blur(15px);position:sticky;top:0;z-index:5}.top h1{font-size:22px;margin:0}.pageIdentity{display:flex;align-items:center;gap:12px;min-width:0}.headerLogo{width:88px;height:32px;object-fit:contain;object-position:left center;display:block}.pill{border:1px solid #29333f;background:#10161d;padding:9px 12px;border-radius:999px;color:#bbc4cf;font-size:12px}.content{max-width:1180px;margin:auto;padding:30px}.view{display:none}.view.active{display:block}.grid{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(290px,.8fr);gap:20px}.two{display:grid;grid-template-columns:1fr 1fr;gap:20px}.panel{background:linear-gradient(180deg,#12181f,#0e1319);border:1px solid #252e39;border-radius:20px;padding:24px;box-shadow:0 25px 70px #0004}.panel h2{margin:4px 0 0;font-size:25px}.panel h3{margin:4px 0 16px}.muted{color:#8995a4;font-size:12px;line-height:1.55}.onair{min-height:520px;display:flex;flex-direction:column}.headline{display:flex;justify-content:space-between;gap:15px}.badge{border:1px solid #35404c;border-radius:999px;padding:0 11px;height:28px;min-width:86px;color:#8e99a8;font-size:10px;line-height:1;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;flex:0 0 auto}.badge.live{color:white;background:#ff3b4513;border-color:#ff3b4577}.timer{font-size:clamp(48px,7vw,76px);letter-spacing:-.05em;font-variant-numeric:tabular-nums;margin:44px 0 26px}.meter{height:22px;background:#080b0f;border:1px solid #2b3541;border-radius:7px;overflow:hidden}.meter>div{width:0;height:100%;background:linear-gradient(90deg,#23c97a 0 62%,#f3c74d 78%,#ff404b 100%);transition:width .08s linear}.meterlabels{display:flex;justify-content:space-between;color:#7e8a99;font-size:10px;margin:8px 0 26px}.mic{display:flex;align-items:center;gap:12px;padding:15px;border:1px solid #222c36;border-radius:13px;background:#0c1117}.mic small{display:block;margin-bottom:5px}.mic strong{font-size:13px;display:block}.micInfo{min-width:0;flex:1}.micMute{margin-left:auto;padding:9px 12px;border-radius:10px;white-space:nowrap}.actions{display:grid;grid-template-columns:.85fr 1.15fr;gap:12px;margin-top:auto;padding-top:25px}.btn{border:1px solid transparent;border-radius:13px;padding:14px 17px;color:white;font-weight:850;background:#171e27}.btn.secondary{border-color:#303a46}.btn.go{background:linear-gradient(#ff4550,#d62531)}.btn.go.live{background:linear-gradient(#8b2028,#61161c)}.btn.mute{border-color:#303a46}.btn.mute.active{background:#5d2026;border-color:#8b3038}.checks{display:grid}.check{padding:15px 0;border-bottom:1px solid #202832;display:flex;gap:11px}.check b{font-size:13px}.check small{display:block;color:#798595;margin-top:3px}.checkmark{width:25px;height:25px;border:1px solid #34404d;border-radius:50%;display:grid;place-items:center}.checkmark.ok{background:var(--green);border-color:var(--green);color:#06120c}.toggle{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:18px}.switch{width:44px;height:25px;background:#2b3440;border-radius:999px;position:relative}.switch:after{content:"";position:absolute;width:19px;height:19px;left:3px;top:3px;border-radius:50%;background:#aeb7c2;transition:.2s}.switch.on{background:#29d17d44;box-shadow:inset 0 0 0 1px #29d17d88}.switch.on:after{transform:translateX(19px);background:var(--green)}.url{padding:14px;border:1px solid #27313c;border-radius:13px;background:#090d12;overflow-wrap:anywhere;margin:20px 0}label{display:block;font-size:12px;font-weight:750;margin-top:18px}input,select{width:100%;padding:13px 14px;margin-top:7px;border-radius:12px;border:1px solid #303a46;background:#0b1016;color:white}.row{display:flex;gap:10px;margin-top:12px}.history{display:grid;gap:9px}.hist{padding:14px;border:1px solid #222b35;background:#0d1218;border-radius:12px;display:flex;justify-content:space-between;gap:12px}.empty{text-align:center;color:#7f8b9a;padding:35px 10px}.adminOnly{display:none}.adminOnly.show{display:block}.adminGrid{display:grid;grid-template-columns:minmax(280px,.75fr) minmax(0,1.25fr);gap:20px}.broadcasters{display:grid;gap:10px;margin-top:18px}.broadcaster{padding:15px;border:1px solid #222b35;background:#0d1218;border-radius:13px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center}.broadcaster .meta{color:#8793a2;font-size:12px;margin-top:4px;overflow-wrap:anywhere}.broadcaster .actions2{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}.mini{padding:8px 10px;border-radius:9px;font-size:11px}.keybox{display:none;margin-top:16px;padding:14px;border:1px solid #3a4654;border-radius:12px;background:#090d12}.keybox.show{display:block}.keyvalue{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;overflow-wrap:anywhere;margin:8px 0}.notice{padding:11px 12px;border-radius:10px;background:#101820;border:1px solid #263442;margin-top:12px;font-size:12px;color:#aeb9c6}.mobile{display:none}.modal{position:fixed;inset:0;z-index:50;background:#030508dd;backdrop-filter:blur(13px);display:grid;place-items:center;padding:20px}.modal.hide{display:none}.card{width:min(430px,100%);padding:27px;background:#10161d;border:1px solid #2a3440;border-radius:22px}.card h2{margin:8px 0}.authbrand{margin-bottom:22px}.full{width:100%;margin-top:15px}
-@media(max-width:900px){.adminGrid{grid-template-columns:1fr}.broadcaster{grid-template-columns:1fr}.broadcaster .actions2{justify-content:flex-start}.shell{grid-template-columns:1fr}.side{display:none}.top{padding:calc(14px + env(safe-area-inset-top)) 18px 14px;height:auto;min-height:78px}.content{padding:18px 14px calc(92px + env(safe-area-inset-bottom))}.grid,.two{grid-template-columns:1fr}.mobile{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;left:0;right:0;bottom:0;z-index:20;padding:8px 5px calc(8px + env(safe-area-inset-bottom));background:#080b0ff2;border-top:1px solid #202833}.mobile button{border:0;background:transparent;color:#7f8a98;padding:8px 2px;font-size:10px}.mobile button.active{color:white}}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 70% -20%,#172231 0,#0b1016 38%,#080b0f 70%);color:#f5f7fa}button,input,select{font:inherit}input,select{font-size:16px}body{-webkit-text-size-adjust:100%}.shell{min-height:100vh;display:grid;grid-template-columns:250px 1fr}.side{height:100vh;position:sticky;top:0;padding:24px 17px;background:#090d12;border-right:1px solid #202833;display:flex;flex-direction:column}.brand{display:flex;align-items:center;gap:11px;margin-bottom:28px}.mark{width:42px;height:42px;border-radius:13px;background:linear-gradient(145deg,#ff4c54,#c31828);display:flex;align-items:center;justify-content:center;gap:3px}.mark i{display:block;width:3px;background:white;border-radius:5px}.mark i:nth-child(1){height:12px}.mark i:nth-child(2){height:23px}.mark i:nth-child(3){height:17px}.mark i:nth-child(4){height:9px}.brand strong{letter-spacing:.08em}.brand small{display:block;color:#ff5960;font-weight:900;letter-spacing:.2em;margin-top:3px}.nav{display:grid;gap:8px}.nav button{border:1px solid transparent;background:transparent;color:#8995a5;padding:12px 13px;border-radius:12px;text-align:left;font-weight:750}.nav button.active{color:white;background:#151b23;border-color:#252f3b;box-shadow:inset 3px 0 0 var(--red)}.sidefoot{margin-top:auto}.status{padding:13px;border:1px solid #222b35;background:#10151c;border-radius:12px;font-size:12px;color:#9ca7b5}.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#6d7784;margin-right:7px}.dot.ok{background:var(--green)}main{min-width:0}.top{height:82px;border-bottom:1px solid #202833;display:flex;align-items:center;justify-content:space-between;padding:0 30px;background:rgba(8,11,15,.78);backdrop-filter:blur(15px);position:sticky;top:0;z-index:5}.top h1{font-size:22px;margin:0}.pageIdentity{display:flex;align-items:center;gap:12px;min-width:0}.headerLogo{width:88px;height:32px;object-fit:contain;object-position:left center;display:block}.pill{border:1px solid #29333f;background:#10161d;padding:9px 12px;border-radius:999px;color:#bbc4cf;font-size:12px}.content{max-width:1180px;margin:auto;padding:30px}.view{display:none}.view.active{display:block}.grid{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(290px,.8fr);gap:20px}.two{display:grid;grid-template-columns:1fr 1fr;gap:20px}.panel{background:linear-gradient(180deg,#12181f,#0e1319);border:1px solid #252e39;border-radius:20px;padding:24px;box-shadow:0 25px 70px #0004}.panel h2{margin:4px 0 0;font-size:25px}.panel h3{margin:4px 0 16px}.muted{color:#8995a4;font-size:12px;line-height:1.55}.onair{min-height:520px;display:flex;flex-direction:column}.headline{display:flex;justify-content:space-between;gap:15px}.badge{border:1px solid #35404c;border-radius:999px;padding:0 11px;height:28px;min-width:86px;color:#8e99a8;font-size:10px;line-height:1;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;flex:0 0 auto}.badge.live{color:white;background:#ff3b4513;border-color:#ff3b4577}.timer{font-size:clamp(48px,7vw,76px);letter-spacing:-.05em;font-variant-numeric:tabular-nums;margin:44px 0 26px}.meter{height:22px;background:#080b0f;border:1px solid #2b3541;border-radius:7px;overflow:hidden}.meter>div{width:0;height:100%;background:linear-gradient(90deg,#23c97a 0 62%,#f3c74d 78%,#ff404b 100%);transition:width .08s linear}.meterlabels{display:flex;justify-content:space-between;color:#7e8a99;font-size:10px;margin:8px 0 26px}.mic{display:flex;align-items:center;gap:12px;padding:15px;border:1px solid #222c36;border-radius:13px;background:#0c1117}.mic small{display:block;margin-bottom:5px}.mic strong{font-size:13px;display:block}.micInfo{min-width:0;flex:1}.micMute{margin-left:auto;padding:9px 12px;border-radius:10px;white-space:nowrap}.actions{display:grid;grid-template-columns:.85fr 1.15fr;gap:12px;margin-top:auto;padding-top:25px}.btn{border:1px solid transparent;border-radius:13px;padding:14px 17px;color:white;font-weight:850;background:#171e27}.btn.secondary{border-color:#303a46}.btn.go{background:linear-gradient(#ff4550,#d62531)}.btn.go.live{background:linear-gradient(#8b2028,#61161c)}.btn.mute{border-color:#303a46}.btn.mute.active{background:#5d2026;border-color:#8b3038}.checks{display:grid}.check{padding:15px 0;border-bottom:1px solid #202832;display:flex;gap:11px}.check b{font-size:13px}.check small{display:block;color:#798595;margin-top:3px}.checkmark{width:25px;height:25px;border:1px solid #34404d;border-radius:50%;display:grid;place-items:center}.checkmark.ok{background:var(--green);border-color:var(--green);color:#06120c}.toggle{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:18px}.switch{width:44px;height:25px;background:#2b3440;border-radius:999px;position:relative}.switch:after{content:"";position:absolute;width:19px;height:19px;left:3px;top:3px;border-radius:50%;background:#aeb7c2;transition:.2s}.switch.on{background:#29d17d44;box-shadow:inset 0 0 0 1px #29d17d88}.switch.on:after{transform:translateX(19px);background:var(--green)}.url{padding:14px;border:1px solid #27313c;border-radius:13px;background:#090d12;overflow-wrap:anywhere;margin:20px 0}label{display:block;font-size:12px;font-weight:750;margin-top:18px}input,select{width:100%;padding:13px 14px;margin-top:7px;border-radius:12px;border:1px solid #303a46;background:#0b1016;color:white}.row{display:flex;gap:10px;margin-top:12px}.history{display:grid;gap:9px}.hist{padding:14px;border:1px solid #222b35;background:#0d1218;border-radius:12px;display:flex;justify-content:space-between;gap:12px}.empty{text-align:center;color:#7f8b9a;padding:35px 10px}.adminOnly{display:none}.adminOnly.show{display:block}.adminGrid{display:grid;grid-template-columns:minmax(280px,.75fr) minmax(0,1.25fr);gap:20px}.broadcasters{display:grid;gap:10px;margin-top:18px}.broadcaster{padding:15px;border:1px solid #222b35;background:#0d1218;border-radius:13px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center}.broadcaster .meta{color:#8793a2;font-size:12px;margin-top:4px;overflow-wrap:anywhere}.broadcaster .actions2{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}.mini{padding:8px 10px;border-radius:9px;font-size:11px}.keybox{display:none;margin-top:16px;padding:14px;border:1px solid #3a4654;border-radius:12px;background:#090d12}.keybox.show{display:block}.keyvalue{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;overflow-wrap:anywhere;margin:8px 0}.notice{padding:11px 12px;border-radius:10px;background:#101820;border:1px solid #263442;margin-top:12px;font-size:12px;color:#aeb9c6}.audioPanel{margin-top:20px}.decks{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:18px}.deck{border:1px solid #27313c;background:#0b1016;border-radius:14px;padding:14px}.deckHead{display:flex;justify-content:space-between;align-items:center;gap:10px}.deckTitle{font-weight:850}.deckTime{font-size:11px;color:#8895a4;font-variant-numeric:tabular-nums}.deck select{margin-top:10px}.deckBtns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.deckProgress{height:5px;background:#202833;border-radius:999px;overflow:hidden;margin-top:10px}.deckProgress span{display:block;height:100%;width:0;background:#ff3b45}.hotkeys{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.hotkey{padding:11px 14px;border-radius:11px;border:1px solid #394453;background:#151b23;color:white;font-weight:800}.hotkey.playing{background:#5d2026;border-color:#8b3038}.libraryRow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid #202832}.libraryMeta{font-size:11px;color:#83909f;margin-top:3px}.audioUpload{display:flex;gap:10px;align-items:end;flex-wrap:wrap;margin-top:15px}.audioUpload label{flex:1;min-width:220px}.audioUpload input[type=file]{padding:10px}.mobile{display:none}.modal{position:fixed;inset:0;z-index:50;background:#030508dd;backdrop-filter:blur(13px);display:grid;place-items:center;padding:20px}.modal.hide{display:none}.card{width:min(430px,100%);padding:27px;background:#10161d;border:1px solid #2a3440;border-radius:22px}.card h2{margin:8px 0}.authbrand{margin-bottom:22px}.full{width:100%;margin-top:15px}
+@media(max-width:900px){.decks{grid-template-columns:1fr}.adminGrid{grid-template-columns:1fr}.broadcaster{grid-template-columns:1fr}.broadcaster .actions2{justify-content:flex-start}.shell{grid-template-columns:1fr}.side{display:none}.top{padding:calc(14px + env(safe-area-inset-top)) 18px 14px;height:auto;min-height:78px}.content{padding:18px 14px calc(92px + env(safe-area-inset-bottom))}.grid,.two{grid-template-columns:1fr}.mobile{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;left:0;right:0;bottom:0;z-index:20;padding:8px 5px calc(8px + env(safe-area-inset-bottom));background:#080b0ff2;border-top:1px solid #202833}.mobile button{border:0;background:transparent;color:#7f8a98;padding:8px 2px;font-size:10px}.mobile button.active{color:white}}
 @media(max-width:520px){.headerLogo{width:72px;height:28px}.panel{padding:18px;border-radius:17px}.actions{grid-template-columns:1fr}.timer{font-size:58px}.top h1{font-size:20px}.pill{font-size:0}.pill:after{content:"Status";font-size:11px}}
 </style>
 </head>
@@ -29,6 +29,17 @@
 <div class="check"><span class="checkmark" id="relayCheck">2</span><div><b>Relay server</b><small id="relayText">Checking…</small></div></div>
 <div class="check"><span class="checkmark" id="outputCheck">3</span><div><b>Broadcast output</b><small id="outputText">Checking…</small></div></div></div>
 <div class="toggle"><div><b>Keep screen awake</b><div class="muted" id="wakeText">Recommended while broadcasting</div></div><button class="switch" id="wake"></button></div></div>
+</div>
+<div class="panel audioPanel">
+<div class="headline"><div><div class="muted">PLAYOUT</div><h2>Audio players</h2></div><div class="muted">3 decks + shared hotkeys</div></div>
+<div class="decks">
+  <div class="deck" data-deck="1"><div class="deckHead"><span class="deckTitle">Player 1</span><span class="deckTime" id="deckTime1">00:00 / 00:00</span></div><select id="deckSelect1"><option value="">Load audio…</option></select><div class="deckProgress"><span id="deckProgress1"></span></div><div class="deckBtns"><button class="btn secondary mini" id="deckPlay1">▶ Play</button><button class="btn secondary mini" id="deckStop1">■ Stop</button></div><audio id="deckAudio1" preload="auto"></audio></div>
+  <div class="deck" data-deck="2"><div class="deckHead"><span class="deckTitle">Player 2</span><span class="deckTime" id="deckTime2">00:00 / 00:00</span></div><select id="deckSelect2"><option value="">Load audio…</option></select><div class="deckProgress"><span id="deckProgress2"></span></div><div class="deckBtns"><button class="btn secondary mini" id="deckPlay2">▶ Play</button><button class="btn secondary mini" id="deckStop2">■ Stop</button></div><audio id="deckAudio2" preload="auto"></audio></div>
+  <div class="deck" data-deck="3"><div class="deckHead"><span class="deckTitle">Player 3</span><span class="deckTime" id="deckTime3">00:00 / 00:00</span></div><select id="deckSelect3"><option value="">Load audio…</option></select><div class="deckProgress"><span id="deckProgress3"></span></div><div class="deckBtns"><button class="btn secondary mini" id="deckPlay3">▶ Play</button><button class="btn secondary mini" id="deckStop3">■ Stop</button></div><audio id="deckAudio3" preload="auto"></audio></div>
+</div>
+<div style="margin-top:18px"><div class="muted">SHARED HOTKEYS</div><div class="hotkeys" id="hotkeys"><span class="muted">No hotkeys loaded.</span></div></div>
+<div class="audioUpload"><label>Upload audio<input id="audioUpload" type="file" accept="audio/*"></label><button class="btn secondary" id="uploadAudio">Upload to library</button></div>
+<p class="muted" id="audioMessage">Uploaded clips are stored in SignalFlow and can be loaded into any player.</p>
 </div></section>
 <section class="view" id="output"><div class="two"><div class="panel"><div class="muted">PUBLIC OUTPUT</div><h2>Your live stream</h2><div class="url" id="listenUrl">Output URL not configured</div><button class="btn secondary" id="copy">Copy stream URL</button><p class="muted">Add this URL to the main SignalFlow scheduler as an ordinary stream source.</p></div><div class="panel"><div class="muted">LISTENER CONFIDENCE</div><h3>Test output</h3><audio controls preload="none" id="player" style="width:100%;margin-top:15px"></audio><p class="muted">The listener player becomes usable once the live output is configured.</p></div></div></section>
 <section class="view" id="settings"><div class="two"><div class="panel"><div class="muted">AUDIO INPUT</div><h2>Microphone</h2><label>Input device<select id="device"><option value="">Default microphone</option></select></label><div class="row"><button class="btn secondary" id="refresh">Refresh devices</button><button class="btn secondary" id="test">Test mic</button></div><p class="muted">External USB, wired and Bluetooth microphones appear here when exposed by the browser/device.</p></div><div class="panel"><div class="muted">DEVICE</div><h2>Broadcast behaviour</h2><div class="toggle"><div><b>Keep screen awake</b><div class="muted">Uses the browser Screen Wake Lock API where supported.</div></div><button class="switch" id="wake2"></button></div><p class="muted" id="wakeSupport"></p></div></div></section>
@@ -42,7 +53,7 @@
 <div class="keybox" id="keyBox"><div class="muted">NEW BROADCASTER KEY</div><div class="keyvalue" id="generatedKey"></div><button class="btn secondary mini" id="copyKey">Copy key</button><p class="muted" id="keyMessage"></p></div></div>
 <div class="panel"><div class="headline"><div><div class="muted">ACCESS</div><h2>Broadcasters</h2></div><button class="btn secondary mini" id="refreshBroadcasters">Refresh</button></div><div class="broadcasters" id="broadcasterList"><div class="empty">Loading broadcasters…</div></div></div>
 </div>
-<div class="panel" style="margin-top:20px"><div class="headline"><div><div class="muted">SERVER HISTORY</div><h2>Broadcast activity</h2></div><button class="btn secondary mini" id="refreshAudit">Refresh</button></div><div class="history" id="auditList"><div class="empty">Loading broadcast activity…</div></div></div>
+<div class="panel" style="margin-top:20px"><div class="headline"><div><div class="muted">ADMIN PLAYOUT</div><h2>Shared hotkeys</h2></div></div><p class="muted">Assign uploaded jingles or stabs to numbered hotkey slots. Every broadcaster sees the same buttons.</p><div id="hotkeyAdminList"><div class="empty">Loading audio library…</div></div></div><div class="panel" style="margin-top:20px"><div class="headline"><div><div class="muted">SERVER HISTORY</div><h2>Broadcast activity</h2></div><button class="btn secondary mini" id="refreshAudit">Refresh</button></div><div class="history" id="auditList"><div class="empty">Loading broadcast activity…</div></div></div>
 </section>
 </div></main></div>
 <nav class="mobile"><button class="active" data-view="broadcast">●<br>Broadcast</button><button data-view="output">↗<br>Output</button><button data-view="settings">⚙<br>Settings</button><button data-view="history">◷<br>History</button><button class="adminOnly" data-view="broadcasters">👤<br>Users</button></nav>
@@ -52,7 +63,7 @@
   'use strict';
   function byId(id){ return document.getElementById(id); }
   function all(sel){ return Array.prototype.slice.call(document.querySelectorAll(sel)); }
-  var mediaStream=null, audioCtx=null, analyser=null, recorder=null, socket=null, timerHandle=null, startedAt=0, wakeLock=null, appStatus={}, awaitingOutput=false, socketOpened=false, micMuted=false;
+  var mediaStream=null, audioCtx=null, analyser=null, recorder=null, socket=null, timerHandle=null, startedAt=0, wakeLock=null, appStatus={}, awaitingOutput=false, socketOpened=false, micMuted=false, mixDest=null, micSource=null, audioLibrary=[], userRole='broadcaster', deckSources={};
 
   window.signalFlowSignIn=function(){
     var input=byId('token'), msg=byId('authMsg'), modal=byId('auth');
@@ -85,7 +96,9 @@
   function loadMe(){
     if(!getToken())return;
     api('/api/me').then(function(me){
+      userRole=me.role||'broadcaster';
       if(me.role==='admin'){all('.adminOnly').forEach(function(el){el.classList.add('show');});loadBroadcasters();loadAudit();}
+      loadAudioLibrary();
     }).catch(function(){});
   }
   function loadBroadcasters(){
@@ -137,6 +150,109 @@
   window.signalFlowActivate=function(id){api('/api/broadcasters/'+id+'/activate',{method:'POST'}).then(loadBroadcasters).catch(function(e){alert(e.message);});};
   window.signalFlowRegenerate=function(id){if(!confirm('Generate a new key? Their old key will stop working immediately.'))return;api('/api/broadcasters/'+id+'/regenerate',{method:'POST',body:JSON.stringify({sendEmail:true})}).then(function(r){showGeneratedKey(r.key,r.invite&&r.invite.sent?'New key emailed to broadcaster.':(r.invite&&r.invite.reason?r.invite.reason:'New key generated.'));loadBroadcasters();}).catch(function(e){alert(e.message);});};
   window.signalFlowResend=function(id){api('/api/broadcasters/'+id+'/resend',{method:'POST'}).then(function(r){alert(r.invite&&r.invite.sent?'Invitation email sent.':(r.invite&&r.invite.reason?r.invite.reason:'Invite processed.'));}).catch(function(e){alert(e.message);});};
+
+  function formatShort(seconds){
+    if(!isFinite(seconds)||seconds<0)return '00:00';
+    var s=Math.floor(seconds),m=Math.floor(s/60);s=s%60;
+    return (m<10?'0':'')+m+':'+(s<10?'0':'')+s;
+  }
+  function loadAudioLibrary(){
+    api('/api/audio').then(function(data){
+      audioLibrary=data.audio||[];
+      for(var n=1;n<=3;n++){
+        var sel=byId('deckSelect'+n);if(!sel)continue;
+        var current=sel.value,html='<option value="">Load audio…</option>';
+        audioLibrary.forEach(function(x){html+='<option value="'+esc(x.id)+'">'+esc(x.name)+'</option>';});
+        sel.innerHTML=html;if(current)sel.value=current;
+      }
+      renderHotkeys(data.hotkeys||[]);
+      if(userRole==='admin')renderHotkeyAdmin();
+    }).catch(function(e){if(byId('audioMessage'))byId('audioMessage').textContent=e.message;});
+  }
+  function ensureAudioGraph(){
+    var AC=window.AudioContext||window.webkitAudioContext;
+    if(!AC)return null;
+    if(!audioCtx)audioCtx=new AC();
+    if(audioCtx.state==='suspended'){try{audioCtx.resume();}catch(e){}}
+    if(!mixDest)mixDest=audioCtx.createMediaStreamDestination();
+    if(mediaStream&&!micSource){
+      micSource=audioCtx.createMediaStreamSource(mediaStream);
+      analyser=audioCtx.createAnalyser();analyser.fftSize=512;
+      micSource.connect(analyser);micSource.connect(mixDest);meterLoop();
+    }
+    for(var n=1;n<=3;n++){
+      var el=byId('deckAudio'+n);
+      if(el&&!deckSources[n]){
+        try{deckSources[n]=audioCtx.createMediaElementSource(el);deckSources[n].connect(mixDest);}catch(e){}
+      }
+    }
+    return mixDest;
+  }
+  function loadDeck(n,id){
+    var el=byId('deckAudio'+n),item=audioLibrary.find(function(x){return x.id===id;});
+    if(!el)return;
+    try{el.pause();el.currentTime=0;}catch(e){}
+    el.src=item?item.url:'';el.load();
+    if(byId('deckProgress'+n))byId('deckProgress'+n).style.width='0';
+    if(byId('deckTime'+n))byId('deckTime'+n).textContent='00:00 / 00:00';
+    ensureAudioGraph();
+  }
+  function playDeck(n){
+    var el=byId('deckAudio'+n);if(!el||!el.src)return;
+    ensureAudioGraph();
+    try{if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume();}catch(e){}
+    var p=el.play();if(p&&p.catch)p.catch(function(e){if(byId('audioMessage'))byId('audioMessage').textContent='Could not play audio: '+e.message;});
+  }
+  function stopDeck(n){var el=byId('deckAudio'+n);if(!el)return;try{el.pause();el.currentTime=0;}catch(e){}}
+  function wireDeck(n){
+    var sel=byId('deckSelect'+n),play=byId('deckPlay'+n),stop=byId('deckStop'+n),el=byId('deckAudio'+n);
+    if(sel)sel.onchange=function(){loadDeck(n,sel.value);};
+    if(play)play.onclick=function(){playDeck(n);};
+    if(stop)stop.onclick=function(){stopDeck(n);};
+    if(el){
+      el.addEventListener('timeupdate',function(){
+        var pct=el.duration?Math.min(100,(el.currentTime/el.duration)*100):0;
+        if(byId('deckProgress'+n))byId('deckProgress'+n).style.width=pct+'%';
+        if(byId('deckTime'+n))byId('deckTime'+n).textContent=formatShort(el.currentTime)+' / '+formatShort(el.duration);
+      });
+      el.addEventListener('ended',function(){if(byId('deckProgress'+n))byId('deckProgress'+n).style.width='0';});
+    }
+  }
+  function renderHotkeys(items){
+    var el=byId('hotkeys');if(!el)return;
+    if(!items.length){el.innerHTML='<span class="muted">No hotkeys loaded.</span>';return;}
+    el.innerHTML='';
+    items.forEach(function(x){
+      var b=document.createElement('button');b.className='hotkey';b.textContent=x.hotkeyOrder+'. '+x.name;
+      var a=document.createElement('audio');a.preload='auto';a.src=x.url;
+      el.appendChild(b);el.appendChild(a);
+      try{ensureAudioGraph();if(audioCtx){var src=audioCtx.createMediaElementSource(a);src.connect(mixDest);}}catch(e){}
+      b.onclick=function(){ensureAudioGraph();try{a.currentTime=0;}catch(e){}var p=a.play();b.classList.add('playing');if(p&&p.catch)p.catch(function(){});};
+      a.onended=function(){b.classList.remove('playing');};
+      a.onpause=function(){if(a.currentTime===0)b.classList.remove('playing');};
+    });
+  }
+  function renderHotkeyAdmin(){
+    var el=byId('hotkeyAdminList');if(!el)return;
+    if(!audioLibrary.length){el.innerHTML='<div class="empty">Upload some audio first.</div>';return;}
+    el.innerHTML=audioLibrary.map(function(x){
+      var checked=x.hotkey?' checked':'',order=x.hotkeyOrder||1;
+      return '<div class="libraryRow"><div><b>'+esc(x.name)+'</b><div class="libraryMeta">'+esc(x.ownerName||'')+'</div></div><div style="display:flex;gap:6px;align-items:center"><select id="hkOrder_'+x.id+'" style="width:72px;margin:0;padding:8px">'+[1,2,3,4,5,6].map(function(n){return '<option value="'+n+'"'+(n===order?' selected':'')+'>'+n+'</option>';}).join('')+'</select><button class="btn secondary mini" onclick="signalFlowHotkey(\''+x.id+'\','+(x.hotkey?'false':'true')+')">'+(x.hotkey?'Remove':'Make hotkey')+'</button></div></div>';
+    }).join('');
+  }
+  window.signalFlowHotkey=function(id,enabled){
+    var orderEl=byId('hkOrder_'+id),order=orderEl?Number(orderEl.value):1;
+    api('/api/audio/'+id+'/hotkey',{method:'POST',body:JSON.stringify({enabled:enabled,order:order})}).then(loadAudioLibrary).catch(function(e){alert(e.message);});
+  };
+  function uploadAudio(){
+    var input=byId('audioUpload'),file=input&&input.files?input.files[0]:null;
+    if(!file){if(byId('audioMessage'))byId('audioMessage').textContent='Choose an audio file first.';return;}
+    if(byId('audioMessage'))byId('audioMessage').textContent='Uploading '+file.name+'…';
+    fetch('/api/audio',{method:'POST',headers:{Authorization:'Bearer '+getToken(),'Content-Type':file.type||'application/octet-stream','X-File-Name':encodeURIComponent(file.name)},body:file}).then(function(r){return r.json().then(function(j){if(!r.ok)throw new Error(j.error||'Upload failed');return j;});}).then(function(){
+      if(byId('audioMessage'))byId('audioMessage').textContent='Upload complete. The clip is ready to load.';
+      input.value='';loadAudioLibrary();
+    }).catch(function(e){if(byId('audioMessage'))byId('audioMessage').textContent=e.message;});
+  }
 
   function fmt(seconds){
     seconds=Math.max(0,Math.floor(seconds||0));
@@ -272,8 +388,7 @@
       if(byId('go'))byId('go').disabled=false;
       if(byId('mute'))byId('mute').disabled=false;
       if(msg)msg.textContent='Microphone ready. Check the level before going live.';
-      var AC=window.AudioContext||window.webkitAudioContext;
-      if(AC){audioCtx=new AC();var src=audioCtx.createMediaStreamSource(mediaStream);analyser=audioCtx.createAnalyser();analyser.fftSize=512;src.connect(analyser);meterLoop();}
+      micSource=null;ensureAudioGraph();
     }).catch(function(e){if(msg)msg.textContent='Microphone access failed: '+(e&&e.message?e.message:e);});
   };
 
@@ -335,7 +450,8 @@
     socketOpened=false;
     socket.onopen=function(){
       socketOpened=true;
-      try{recorder=mime?new MediaRecorder(mediaStream,{mimeType:mime}):new MediaRecorder(mediaStream);}
+      var outgoing=(ensureAudioGraph()&&mixDest)?mixDest.stream:mediaStream;
+      try{recorder=mime?new MediaRecorder(outgoing,{mimeType:mime}):new MediaRecorder(outgoing);}
       catch(e){if(byId('message'))byId('message').textContent='Could not start audio encoder: '+e.message;return;}
       recorder.ondataavailable=function(e){if(e.data&&e.data.size&&socket&&socket.readyState===1){e.data.arrayBuffer().then(function(b){socket.send(b);});}};
       recorder.start(500);startedAt=Date.now();awaitingOutput=true;timerHandle=setInterval(function(){if(byId('timer'))byId('timer').textContent=fmt((Date.now()-startedAt)/1000);},250);
@@ -388,6 +504,8 @@
   function boot(){
     all('[data-view]').forEach(function(b){b.onclick=function(){setView(b.getAttribute('data-view'));};});
     if(byId('prepare'))byId('prepare').onclick=window.signalFlowPrepare;
+    wireDeck(1);wireDeck(2);wireDeck(3);
+    if(byId('uploadAudio'))byId('uploadAudio').onclick=uploadAudio;
     if(byId('refresh'))byId('refresh').onclick=refreshDevices;
     if(byId('test'))byId('test').onclick=window.signalFlowPrepare;
     if(byId('go'))byId('go').onclick=window.signalFlowGo;

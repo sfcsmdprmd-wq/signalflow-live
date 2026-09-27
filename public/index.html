@@ -98,7 +98,7 @@
   'use strict';
   function byId(id){ return document.getElementById(id); }
   function all(sel){ return Array.prototype.slice.call(document.querySelectorAll(sel)); }
-  var mediaStream=null, audioCtx=null, analyser=null, recorder=null, socket=null, timerHandle=null, startedAt=0, wakeLock=null, appStatus={}, awaitingOutput=false, socketOpened=false, micMuted=false, mixDest=null, micSource=null, audioLibrary=[], userRole='broadcaster', deckSources={}, deckMonitors={}, hotkeyMonitorPairs=[], playoutProgramGain=null, playoutMonitorGain=null, micMonitorGain=null, monitorPlayout=false, monitorMic=false, playoutDucked=false, expectedMicLabel='', lastRouteMicLabel='', activeDeckNumber=0;
+  var mediaStream=null, audioCtx=null, analyser=null, recorder=null, socket=null, timerHandle=null, startedAt=0, wakeLock=null, appStatus={}, awaitingOutput=false, socketOpened=false, micMuted=false, mixDest=null, micSource=null, audioLibrary=[], userRole='broadcaster', deckSources={}, deckMonitorBuffers={}, deckMonitorSources={}, deckMonitorStartedAt={}, hotkeyMonitorPairs=[], playoutProgramGain=null, playoutMonitorGain=null, micMonitorGain=null, monitorPlayout=false, monitorMic=false, playoutDucked=false, expectedMicLabel='', lastRouteMicLabel='', activeDeckNumber=0;
 
   window.signalFlowSignIn=function(){
     var input=byId('token'), msg=byId('authMsg'), modal=byId('auth'), button=byId('signIn');
@@ -268,61 +268,72 @@
   function monitorVolume(){
     return playoutDucked?0.25:1;
   }
-  function ensureDeckMonitor(n){
-    var program=byId('deckAudio'+n);
-    if(!program)return null;
-    var mon=deckMonitors[n];
-    if(!mon){
-      mon=new Audio();
-      mon.preload='auto';
-      mon.playsInline=true;
-      deckMonitors[n]=mon;
-    }
-    if(program.src&&mon.src!==program.src){
-      try{mon.pause();}catch(e){}
-      mon.src=program.src;
-      try{mon.load();}catch(e){}
-    }
-    mon.volume=monitorVolume();
-    return mon;
+  function decodeMonitorAudio(url,done){
+    ensureAudioGraph();
+    if(!audioCtx||!url){done(null);return;}
+    fetch(url,{cache:'force-cache'}).then(function(r){
+      if(!r.ok)throw new Error('Audio load failed');
+      return r.arrayBuffer();
+    }).then(function(buf){
+      var settled=false;
+      function ok(decoded){if(settled)return;settled=true;done(decoded||null);}
+      function fail(){if(settled)return;settled=true;done(null);}
+      try{
+        var p=audioCtx.decodeAudioData(buf,ok,fail);
+        if(p&&p.then)p.then(ok).catch(fail);
+      }catch(e){fail();}
+    }).catch(function(){done(null);});
+  }
+  function stopDeckMonitor(n){
+    var src=deckMonitorSources[n];
+    if(src){try{src.stop();}catch(e){}try{src.disconnect();}catch(e){}}
+    deckMonitorSources[n]=null;
+    deckMonitorStartedAt[n]=0;
   }
   function startDeckMonitor(n){
-    var program=byId('deckAudio'+n),mon=ensureDeckMonitor(n);
-    if(!monitorPlayout||!program||!mon)return;
+    var program=byId('deckAudio'+n),buffer=deckMonitorBuffers[n];
+    if(!monitorPlayout||!program||!buffer||!audioCtx)return;
+    stopDeckMonitor(n);
     try{
-      if(Math.abs((mon.currentTime||0)-(program.currentTime||0))>0.18)mon.currentTime=program.currentTime||0;
-      mon.volume=monitorVolume();
-      var p=mon.play();
-      if(p&&p.catch)p.catch(function(){});
+      var offset=Math.max(0,Math.min(program.currentTime||0,Math.max(0,buffer.duration-0.02)));
+      var src=audioCtx.createBufferSource();
+      src.buffer=buffer;
+      src.connect(playoutMonitorGain);
+      deckMonitorSources[n]=src;
+      deckMonitorStartedAt[n]=audioCtx.currentTime-offset;
+      src.onended=function(){if(deckMonitorSources[n]===src){deckMonitorSources[n]=null;deckMonitorStartedAt[n]=0;}};
+      src.start(0,offset);
     }catch(e){}
   }
-  function stopDeckMonitor(n,reset){
-    var mon=deckMonitors[n];if(!mon)return;
-    try{mon.pause();if(reset)mon.currentTime=0;}catch(e){}
-  }
-  function syncNativeMonitors(){
+  function syncDecodedMonitors(){
     for(var n=1;n<=3;n++){
-      var program=byId('deckAudio'+n),mon=deckMonitors[n];
+      var program=byId('deckAudio'+n);
       if(!program)continue;
-      if(monitorPlayout&&!program.paused&&!program.ended)startDeckMonitor(n);
-      else if(mon)stopDeckMonitor(n,false);
+      if(monitorPlayout&&!program.paused&&!program.ended){
+        if(!deckMonitorSources[n])startDeckMonitor(n);
+      }else stopDeckMonitor(n);
     }
     hotkeyMonitorPairs.forEach(function(pair){
-      if(!pair||!pair.program||!pair.monitor)return;
-      pair.monitor.volume=monitorVolume();
+      if(!pair||!pair.program)return;
       if(monitorPlayout&&!pair.program.paused&&!pair.program.ended){
-        try{
-          if(Math.abs((pair.monitor.currentTime||0)-(pair.program.currentTime||0))>0.18)pair.monitor.currentTime=pair.program.currentTime||0;
-          var p=pair.monitor.play();if(p&&p.catch)p.catch(function(){});
-        }catch(e){}
-      }else{
-        try{pair.monitor.pause();}catch(e){}
+        if(!pair.source&&pair.buffer&&audioCtx){
+          try{
+            var offset=Math.max(0,Math.min(pair.program.currentTime||0,Math.max(0,pair.buffer.duration-0.02)));
+            var src=audioCtx.createBufferSource();
+            src.buffer=pair.buffer;
+            src.connect(playoutMonitorGain);
+            pair.source=src;
+            src.onended=function(){if(pair.source===src)pair.source=null;};
+            src.start(0,offset);
+          }catch(e){}
+        }
+      }else if(pair.source){
+        try{pair.source.stop();}catch(e){}try{pair.source.disconnect();}catch(e){}pair.source=null;
       }
     });
   }
   function updateNativeMonitorVolumes(){
-    for(var n=1;n<=3;n++){if(deckMonitors[n])deckMonitors[n].volume=monitorVolume();}
-    hotkeyMonitorPairs.forEach(function(pair){if(pair&&pair.monitor)pair.monitor.volume=monitorVolume();});
+    if(playoutMonitorGain)playoutMonitorGain.gain.value=monitorPlayout?monitorVolume():0;
   }
 
   function updateDuckUi(){
@@ -398,7 +409,8 @@
     if(!el)return;
     try{el.pause();el.currentTime=0;}catch(e){}
     el.src=item?item.url:'';el.load();
-    var mon=ensureDeckMonitor(n);if(mon){mon.src=item?item.url:'';try{mon.load();}catch(e){}}
+    stopDeckMonitor(n);deckMonitorBuffers[n]=null;
+    if(item&&item.url){decodeMonitorAudio(item.url,function(buffer){deckMonitorBuffers[n]=buffer;if(buffer&&monitorPlayout&&!el.paused)startDeckMonitor(n);});}
     if(byId('deckProgress'+n))byId('deckProgress'+n).style.width='0';
     if(byId('deckTime'+n))byId('deckTime'+n).textContent='00:00 / 00:00';
     ensureAudioGraph();
@@ -413,7 +425,7 @@
     updatePlayoutDock(n);
     if(p&&p.then)p.then(function(){updatePlayoutDock(n);}).catch(function(e){if(byId('audioMessage'))byId('audioMessage').textContent='Could not play audio: '+e.message;});
   }
-  function stopDeck(n){var el=byId('deckAudio'+n);if(!el)return;try{el.pause();el.currentTime=0;}catch(e){}stopDeckMonitor(n,true);var deck=el.closest?el.closest('.deck'):null;if(deck)deck.classList.remove('ending');refreshDockAfterStop(n);}
+  function stopDeck(n){var el=byId('deckAudio'+n);if(!el)return;try{el.pause();el.currentTime=0;}catch(e){}stopDeckMonitor(n);var deck=el.closest?el.closest('.deck'):null;if(deck)deck.classList.remove('ending');refreshDockAfterStop(n);}
   function wireDeck(n){
     var sel=byId('deckSelect'+n),play=byId('deckPlay'+n),stop=byId('deckStop'+n),el=byId('deckAudio'+n);
     if(sel)sel.onchange=function(){loadDeck(n,sel.value);};
@@ -432,8 +444,10 @@
         }
         if(!el.paused){
           updatePlayoutDock(n);
-          var mon=deckMonitors[n];
-          if(monitorPlayout&&mon&&!mon.paused&&Math.abs((mon.currentTime||0)-(el.currentTime||0))>0.35){try{mon.currentTime=el.currentTime;}catch(e){}}
+          if(monitorPlayout&&deckMonitorSources[n]&&audioCtx&&deckMonitorStartedAt[n]){
+            var heard=Math.max(0,audioCtx.currentTime-deckMonitorStartedAt[n]);
+            if(Math.abs(heard-(el.currentTime||0))>0.5)startDeckMonitor(n);
+          }
         }
       });
       el.addEventListener('ended',function(){
@@ -449,9 +463,9 @@
     if(p)p.className='switch'+(monitorPlayout?' on':'');
     if(m)m.className='switch'+(monitorMic?' on':'');
     if(state)state.textContent=(monitorPlayout||monitorMic)?((monitorPlayout&&monitorMic)?'Playout + mic':'Monitoring '+(monitorPlayout?'playout':'mic')):'Monitoring off';
-    if(playoutMonitorGain)playoutMonitorGain.gain.value=monitorPlayout?1:0;
+    if(playoutMonitorGain)playoutMonitorGain.gain.value=monitorPlayout?monitorVolume():0;
     if(micMonitorGain)micMonitorGain.gain.value=monitorMic?1:0;
-    syncNativeMonitors();
+    syncDecodedMonitors();
     try{localStorage.setItem('sfl.monitorPlayout',monitorPlayout?'1':'0');localStorage.setItem('sfl.monitorMic',monitorMic?'1':'0');}catch(e){}
   }
   window.signalFlowTogglePlayoutMonitor=function(){
@@ -517,7 +531,7 @@
     api('/api/audio/'+id+'/delete',{method:'POST'}).then(function(){
       for(var n=1;n<=3;n++){
         var sel=byId('deckSelect'+n),audio=byId('deckAudio'+n);
-        if(sel&&sel.value===id){sel.value='';if(audio){try{audio.pause();audio.removeAttribute('src');audio.load();}catch(e){}}if(deckMonitors[n]){try{deckMonitors[n].pause();deckMonitors[n].removeAttribute('src');deckMonitors[n].load();}catch(e){}}}
+        if(sel&&sel.value===id){sel.value='';if(audio){try{audio.pause();audio.removeAttribute('src');audio.load();}catch(e){}}stopDeckMonitor(n);deckMonitorBuffers[n]=null;}
       }
       if(byId('audioMessage'))byId('audioMessage').textContent='Audio deleted.';
       loadAudioLibrary();
@@ -526,30 +540,26 @@
 
   function renderHotkeys(items){
     var el=byId('hotkeys');if(!el)return;
-    hotkeyMonitorPairs.forEach(function(pair){try{if(pair.monitor)pair.monitor.pause();}catch(e){}});
+    hotkeyMonitorPairs.forEach(function(pair){if(pair&&pair.source){try{pair.source.stop();}catch(e){}try{pair.source.disconnect();}catch(e){}}});
     hotkeyMonitorPairs=[];
     if(!items.length){el.innerHTML='<span class="muted">No hotkeys loaded.</span>';return;}
     el.innerHTML='';
     items.forEach(function(x){
       var b=document.createElement('button');b.className='hotkey';b.textContent=x.hotkeyOrder+'. '+x.name;
       var a=document.createElement('audio');a.preload='auto';a.src=x.url;
-      var monitorAudio=new Audio();monitorAudio.preload='auto';monitorAudio.playsInline=true;monitorAudio.src=x.url;monitorAudio.volume=monitorVolume();
-      var pair={program:a,monitor:monitorAudio};hotkeyMonitorPairs.push(pair);
+      var pair={program:a,buffer:null,source:null};hotkeyMonitorPairs.push(pair);
+      decodeMonitorAudio(x.url,function(buffer){pair.buffer=buffer;if(buffer&&monitorPlayout&&!a.paused&&!a.ended)syncDecodedMonitors();});
       el.appendChild(b);el.appendChild(a);
       try{ensureAudioGraph();if(audioCtx){var src=audioCtx.createMediaElementSource(a);src.connect(playoutProgramGain);}}catch(e){}
       b.onclick=function(){
         ensureAudioGraph();
         try{a.currentTime=0;}catch(e){}
+        if(pair.source){try{pair.source.stop();}catch(e){}pair.source=null;}
         var p=a.play();b.classList.add('playing');if(p&&p.catch)p.catch(function(){});
-        if(monitorPlayout){
-          try{monitorAudio.currentTime=0;monitorAudio.volume=monitorVolume();var mp=monitorAudio.play();if(mp&&mp.catch)mp.catch(function(){});}catch(e){}
-        }
+        if(monitorPlayout)syncDecodedMonitors();
       };
-      a.ontimeupdate=function(){
-        if(monitorPlayout&&!monitorAudio.paused&&Math.abs((monitorAudio.currentTime||0)-(a.currentTime||0))>0.35){try{monitorAudio.currentTime=a.currentTime;}catch(e){}}
-      };
-      a.onended=function(){b.classList.remove('playing');try{monitorAudio.pause();monitorAudio.currentTime=0;}catch(e){}};
-      a.onpause=function(){if(a.currentTime===0)b.classList.remove('playing');if(a.paused){try{monitorAudio.pause();}catch(e){}}};
+      a.onended=function(){b.classList.remove('playing');if(pair.source){try{pair.source.stop();}catch(e){}pair.source=null;}};
+      a.onpause=function(){if(a.currentTime===0)b.classList.remove('playing');if(a.paused&&pair.source){try{pair.source.stop();}catch(e){}pair.source=null;}};
     });
   }
   function renderHotkeyAdmin(){

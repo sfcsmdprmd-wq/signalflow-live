@@ -93,8 +93,69 @@ function publicBroadcaster(x){return {id:x.id,name:x.name,email:x.email,status:x
 
 function json(res,code,obj){res.writeHead(code,{'content-type':'application/json','cache-control':'no-store'});res.end(JSON.stringify(obj));}
 function typeFor(f){return f.endsWith('.html')?'text/html; charset=utf-8':f.endsWith('.js')?'text/javascript; charset=utf-8':f.endsWith('.css')?'text/css; charset=utf-8':f.endsWith('.webmanifest')?'application/manifest+json':'application/octet-stream';}
+async function handleApi(req,res,u){
+ const token=bearer(req),who=authenticateToken(token);
+ if(u.pathname==='/api/me'){
+   if(!who)return json(res,401,{error:'Unauthorized'});
+   return json(res,200,{id:who.id,name:who.name,email:who.email,role:who.role});
+ }
+ if(!who||who.role!=='admin')return json(res,403,{error:'Admin access required'});
+ if(u.pathname==='/api/broadcasters'&&req.method==='GET'){
+   return json(res,200,{broadcasters:broadcasters().map(publicBroadcaster),emailConfigured:emailConfigured()});
+ }
+ if(u.pathname==='/api/broadcast-history'&&req.method==='GET'){
+   return json(res,200,{history:auditHistory().slice(0,200)});
+ }
+ if(u.pathname==='/api/broadcasters'&&req.method==='POST'){
+   try{
+     const body=await readBody(req),name=String(body.name||'').trim(),email=String(body.email||'').trim().toLowerCase();
+     if(!name||!email||!email.includes('@'))return json(res,400,{error:'Name and a valid email address are required'});
+     const list=broadcasters();
+     if(list.some(x=>x.email.toLowerCase()===email&&x.status==='active'))return json(res,409,{error:'An active broadcaster already uses that email address'});
+     const rawKey=makeBroadcasterKey(),now=new Date().toISOString();
+     const user={id:crypto.randomUUID(),name,email,keyHash:keyHash(rawKey),encryptedKey:encryptKey(rawKey),status:'active',createdAt:now,lastBroadcastAt:null};
+     list.push(user);writeBroadcasters(list);
+     let invite={sent:false,reason:'Invite not requested'};
+     if(body.sendEmail!==false){try{invite=await sendInvite(user,rawKey);}catch(e){invite={sent:false,reason:e.message||String(e)};}}
+     return json(res,201,{broadcaster:publicBroadcaster(user),key:rawKey,invite});
+   }catch(e){return json(res,400,{error:e.message||String(e)});}
+ }
+ const match=u.pathname.match(/^\/api\/broadcasters\/([^/]+)\/(revoke|activate|regenerate|resend)$/);
+ if(match&&req.method==='POST'){
+   const [,id,action]=match,list=broadcasters(),idx=list.findIndex(x=>x.id===id);
+   if(idx<0)return json(res,404,{error:'Broadcaster not found'});
+   const user=list[idx];
+   if(action==='revoke'){user.status='revoked';writeBroadcasters(list);return json(res,200,{broadcaster:publicBroadcaster(user)});}
+   if(action==='activate'){user.status='active';writeBroadcasters(list);return json(res,200,{broadcaster:publicBroadcaster(user)});}
+   if(action==='regenerate'){
+     const rawKey=makeBroadcasterKey();user.keyHash=keyHash(rawKey);user.encryptedKey=encryptKey(rawKey);user.status='active';writeBroadcasters(list);
+     let invite={sent:false,reason:'Invite not requested'};
+     let body={};try{body=await readBody(req);}catch{}
+     if(body.sendEmail!==false){try{invite=await sendInvite(user,rawKey);}catch(e){invite={sent:false,reason:e.message||String(e)};}}
+     return json(res,200,{broadcaster:publicBroadcaster(user),key:rawKey,invite});
+   }
+   if(action==='resend'){
+     const rawKey=decryptKey(user.encryptedKey);
+     if(!rawKey)return json(res,409,{error:'This key cannot be recovered. Regenerate the key instead.'});
+     try{const invite=await sendInvite(user,rawKey);return json(res,200,{broadcaster:publicBroadcaster(user),invite});}
+     catch(e){return json(res,502,{error:e.message||String(e)});}
+   }
+ }
+ return json(res,404,{error:'Not found'});
+}
+function finaliseAudit(session){
+ if(!session||session.auditSaved)return;
+ session.auditSaved=true;
+ const end=new Date(),start=new Date(session.since);
+ const entry={id:crypto.randomUUID(),broadcasterId:session.broadcaster.id,broadcasterName:session.broadcaster.name,broadcasterEmail:session.broadcaster.email||'',startedAt:session.since,endedAt:end.toISOString(),durationSeconds:Math.max(0,Math.round((end-start)/1000)),reconnects:session.reconnects||0};
+ try{addAudit(entry);}catch(e){console.error('Could not save broadcast history:',e.message||String(e));}
+ if(session.broadcaster.role==='broadcaster'){
+   try{const list=broadcasters(),idx=list.findIndex(x=>x.id===session.broadcaster.id);if(idx>=0){list[idx].lastBroadcastAt=end.toISOString();writeBroadcasters(list);}}catch(e){console.error('Could not update broadcaster history:',e.message||String(e));}
+ }
+}
 function serve(req,res){
  const u=new URL(req.url,'http://localhost');
+ if(u.pathname==='/api/me'||u.pathname==='/api/broadcasters'||u.pathname==='/api/broadcast-history'||u.pathname.startsWith('/api/broadcasters/')) return void handleApi(req,res,u);
  if(u.pathname==='/listen'){
    if(!active||!active.ready){
      res.writeHead(503,{'content-type':'text/plain','cache-control':'no-store, no-cache, must-revalidate, max-age=0','pragma':'no-cache','expires':'0','access-control-allow-origin':'*'});
@@ -120,7 +181,7 @@ function serve(req,res){
    const directListenUrl=proto+'://'+host+'/listen';
    return json(res,200,{
      ok:true,configured:Boolean(cfg.host&&cfg.pass),active:Boolean(active&&active.ready),stationName:cfg.station,
-     connectionState:active?active.connectionState:'idle',reconnects:active?.reconnects||0,
+     connectionState:active?active.connectionState:'idle',reconnects:active?.reconnects||0,currentBroadcaster:active?.broadcaster?.name||null,
      outputFormat:cfg.format,bitrate:cfg.bitrate,listenUrl:directListenUrl,directListenUrl:directListenUrl,mount:cfg.mount,lastError
    });
  }
@@ -206,15 +267,16 @@ server.on('upgrade',(req,socket,head)=>{
  const u=new URL(req.url,`http://${req.headers.host||'localhost'}`);
  if(u.pathname!=='/live') return socket.destroy();
  const token=u.searchParams.get('token')||'';
- if(!cfg.token||token!==cfg.token){socket.write('HTTP/1.1 401 Unauthorized\r\nConnection: close\r\n\r\n');return socket.destroy();}
+ const broadcaster=authenticateToken(token);
+ if(!broadcaster){socket.write('HTTP/1.1 401 Unauthorized\r\nConnection: close\r\n\r\n');return socket.destroy();}
  if(active){socket.write('HTTP/1.1 409 Conflict\r\nConnection: close\r\n\r\n');return socket.destroy();}
  if(!cfg.host||!cfg.pass){socket.write('HTTP/1.1 503 Service Unavailable\r\nConnection: close\r\n\r\n');return socket.destroy();}
- wss.handleUpgrade(req,socket,head,ws=>wss.emit('connection',ws));
+ wss.handleUpgrade(req,socket,head,ws=>{ws.broadcaster=broadcaster;wss.emit('connection',ws);});
 });
 wss.on('connection',ws=>{
  const isShoutcast=cfg.serverType==='shoutcast';
  const proc=spawn('ffmpeg',isShoutcast?encoderArgs('pipe:1'):icecastArgs(),{stdio:['pipe',isShoutcast?'pipe':'ignore','pipe']});
- const session={ws,proc,sock:null,ready:!isShoutcast,everReady:!isShoutcast,connectionState:isShoutcast?'connecting':'live',reconnects:0,reconnectTimer:null,stopping:false,since:new Date().toISOString()};
+ const session={ws,proc,sock:null,ready:!isShoutcast,everReady:!isShoutcast,connectionState:isShoutcast?'connecting':'live',reconnects:0,reconnectTimer:null,stopping:false,since:new Date().toISOString(),broadcaster:ws.broadcaster||{id:'unknown',name:'Unknown',email:'',role:'broadcaster'}};
  active=session; lastError='';
  proc.stderr.setEncoding('utf8');
  proc.stderr.on('data',d=>{const t=String(d).trim();if(t){lastError=t.slice(-800);console.error(t.replaceAll(cfg.pass,'[REDACTED]'));}});
@@ -238,6 +300,7 @@ wss.on('connection',ws=>{
      session.stopping=true;
      clearTimeout(session.reconnectTimer);
      try{session.sock?.destroy();}catch{}
+     finaliseAudit(session);
      active=null;
    }
  });
@@ -249,6 +312,7 @@ wss.on('connection',ws=>{
    try{proc.stdin.end();}catch{}
    try{session.sock?.end();}catch{}
    setTimeout(()=>{if(!proc.killed)proc.kill('SIGTERM')},800).unref();
+   finaliseAudit(session);
    active=null;
  };
  ws.on('close',stop);

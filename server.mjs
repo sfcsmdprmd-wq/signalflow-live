@@ -52,12 +52,12 @@ function serve(req,res){
  });
 }
 function target(){
- const scheme=cfg.tls?'icecasts':'icecast';
- return `${scheme}://${encodeURIComponent(cfg.user)}:${encodeURIComponent(cfg.pass)}@${cfg.host}:${cfg.icePort}${cfg.mount}`;
+ return `icecast://${encodeURIComponent(cfg.user)}:${encodeURIComponent(cfg.pass)}@${cfg.host}:${cfg.icePort}${cfg.mount}`;
 }
 function args(){
  const common=['-hide_banner','-loglevel','warning','-i','pipe:0','-vn','-ar',cfg.rate,'-ac',cfg.channels];
  if(cfg.serverType==='shoutcast') common.push('-legacy_icecast','1');
+ if(cfg.tls) common.push('-tls','1');
  if(cfg.format==='aac') return [...common,'-c:a','aac','-b:a',cfg.bitrate,'-content_type','audio/aac','-f','adts',target()];
  return [...common,'-c:a','libmp3lame','-b:a',cfg.bitrate,'-content_type','audio/mpeg','-f','mp3',target()];
 }

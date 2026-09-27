@@ -37,34 +37,185 @@
 <nav class="mobile"><button class="active" data-view="broadcast">●<br>Broadcast</button><button data-view="output">↗<br>Output</button><button data-view="settings">⚙<br>Settings</button><button data-view="history">◷<br>History</button></nav>
 <div class="modal" id="auth"><div class="card"><div class="brand authbrand"><div class="mark"><i></i><i></i><i></i><i></i></div><div><strong>SIGNALFLOW</strong><small>LIVE</small></div></div><div class="muted">BROADCASTER ACCESS</div><h2>Sign in to broadcast</h2><p class="muted">Enter the broadcaster key configured for this service.</p><label>Broadcaster key<input id="token" type="password" autocomplete="current-password"></label><button class="btn go full" id="signIn" type="button" onclick="signalFlowSignIn()">Continue</button><p class="muted" id="authMsg"></p></div></div>
 <script>
-function signalFlowSignIn(){
-  var input=document.getElementById('token');
-  var msg=document.getElementById('authMsg');
-  var modal=document.getElementById('auth');
-  var v=input && input.value ? input.value.trim() : '';
-  if(!v){ if(msg) msg.textContent='Please enter the broadcaster key.'; return; }
-  try{ sessionStorage.setItem('sfl.token',v); }
-  catch(e){ try{ localStorage.setItem('sfl.token',v); }catch(ignore){} }
-  if(modal){ modal.classList.add('hide'); modal.style.display='none'; }
-}
-</script>
-<script>
-const $=id=>document.getElementById(id),qsa=s=>Array.from(document.querySelectorAll(s));
-let stream=null,ctx=null,analyser=null,rec=null,ws=null,tick=null,startAt=null,wakeLock=null,status={};
-const hist=()=>JSON.parse(localStorage.getItem('sfl.history')||'[]');
-function saveHist(x){localStorage.setItem('sfl.history',JSON.stringify([x,...hist()].slice(0,30)));renderHist()}
-function fmt(s){s=Math.max(0,Math.floor(s));return [Math.floor(s/3600),Math.floor(s/60)%60,s%60].map(x=>String(x).padStart(2,'0')).join(':')}
-function setView(v){qsa('.view').forEach(x=>x.classList.toggle('active',x.id===v));qsa('[data-view]').forEach(x=>x.classList.toggle('active',x.dataset.view===v));$('pageTitle').textContent=v[0].toUpperCase()+v.slice(1)}
-qsa('[data-view]').forEach(b=>b.onclick=()=>setView(b.dataset.view));
-async function poll(){try{const r=await fetch('/api/status',{cache:'no-store'});status=await r.json();$('topState').textContent=status.active?'Live':'Relay online';$('sideState').textContent=status.active?'Broadcasting':'Relay online';$('topDot').className='dot ok';$('sideDot').className='dot ok';$('relayCheck').className='checkmark ok';$('relayCheck').textContent='✓';$('relayText').textContent='Connected';const oc=status.configured;$('outputCheck').className='checkmark'+(oc?' ok':'');$('outputCheck').textContent=oc?'✓':'3';$('outputText').textContent=oc?'Configured':'Awaiting Icecast settings';$('listenUrl').textContent=status.listenUrl||'Output URL not configured';$('player').src=status.listenUrl||'';}catch(e){$('topState').textContent='Relay unavailable';$('sideState').textContent='Offline';$('relayText').textContent='Unavailable'}}setTimeout(poll,3000)}poll();
-async function devices(){try{const ds=await navigator.mediaDevices.enumerateDevices();const sel=$('device'),old=sel.value;sel.innerHTML='<option value="">Default microphone</option>';ds.filter(d=>d.kind==='audioinput').forEach((d,i)=>{const o=document.createElement('option');o.value=d.deviceId;o.textContent=d.label||'Microphone '+(i+1);sel.appendChild(o)});if([...sel.options].some(o=>o.value===old))sel.value=old}catch{}}
-async function prepare(){if(stream)stream.getTracks().forEach(t=>t.stop());const id=$('device').value;stream=await navigator.mediaDevices.getUserMedia({audio:id?{deviceId:{exact:id}}:true});await devices();const t=stream.getAudioTracks()[0],lab=t.label||'Microphone';$('activeMic').textContent=lab;$('micCheck').className='checkmark ok';$('micCheck').textContent='✓';$('micText').textContent=lab;$('go').disabled=false;$('message').textContent='Microphone ready. Check the level before going live.';ctx=new AudioContext();const src=ctx.createMediaStreamSource(stream);analyser=ctx.createAnalyser();analyser.fftSize=512;src.connect(analyser);meterLoop()}function meterLoop(){if(!analyser)return;const a=new Uint8Array(analyser.fftSize);analyser.getByteTimeDomainData(a);let sum=0;for(const v of a){const x=(v-128)/128;sum+=x*x}const rms=Math.sqrt(sum/a.length);$('meter').style.width=Math.min(100,rms*360)+'%';requestAnimationFrame(meterLoop)}
-$('prepare').onclick=async()=>{try{await prepare()}catch(e){$('message').textContent='Microphone access failed: '+e.message}};$('refresh').onclick=devices;$('test').onclick=$('prepare').onclick;
-function token(){return sessionStorage.getItem('sfl.token')||localStorage.getItem('sfl.token')||''}
-if($('signIn')) $('signIn').onclick=signalFlowSignIn;if(sessionStorage.getItem('sfl.token')||localStorage.getItem('sfl.token'))$('auth').classList.add('hide');
-async function start(){if(!stream)await prepare();if(!status.configured){$('message').textContent='The interface is ready, but Icecast output has not been configured in Railway yet.';return}const mime=['audio/webm;codecs=opus','audio/mp4','audio/webm'].find(x=>MediaRecorder.isTypeSupported(x))||'';const proto=location.protocol==='https:'?'wss':'ws';ws=new WebSocket(proto+'://'+location.host+'/live?token='+encodeURIComponent(token())+'&mime='+encodeURIComponent(mime));ws.binaryType='arraybuffer';ws.onopen=()=>{rec=new MediaRecorder(stream,mime?{mimeType:mime}:undefined);rec.ondataavailable=e=>{if(e.data.size&&ws.readyState===1)e.data.arrayBuffer().then(b=>ws.send(b))};rec.start(500);startAt=Date.now();tick=setInterval(()=>$('timer').textContent=fmt((Date.now()-startAt)/1000),250);$('badge').className='badge live';$('badge').textContent='● LIVE';$('headline').textContent='Live on air';$('go').textContent='■ End Broadcast';$('go').classList.add('live');$('message').textContent='Broadcasting to SignalFlow Live.';requestWake()};ws.onclose=e=>{if(startAt)stop(false);if(e.code===1006)$('message').textContent='Could not connect. Check broadcaster key and output configuration.'}}function stop(close=true){const dur=startAt?Math.round((Date.now()-startAt)/1000):0;if(rec&&rec.state!=='inactive')rec.stop();if(close&&ws)ws.close();clearInterval(tick);if(startAt)saveHist({at:new Date().toISOString(),duration:dur});startAt=null;rec=null;ws=null;$('timer').textContent='00:00:00';$('badge').className='badge';$('badge').textContent='● OFF AIR';$('headline').textContent='Ready to broadcast';$('go').textContent='● Go Live';$('go').classList.remove('live');$('message').textContent='Broadcast ended.'}
-$('go').onclick=()=>startAt?stop():start();
-async function requestWake(){if(!('wakeLock'in navigator)){wakeText('Wake lock not supported');return}try{wakeLock=await navigator.wakeLock.request('screen');wakeText('Screen will stay awake');wakeLock.addEventListener('release',()=>wakeText('Wake lock released'))}catch(e){wakeText('Wake lock unavailable')}}function wakeText(t){$('wakeText').textContent=t;$('wakeSupport').textContent=t;const on=!!wakeLock&&!wakeLock.released;$('wake').classList.toggle('on',on);$('wake2').classList.toggle('on',on)}async function toggleWake(){if(wakeLock&&!wakeLock.released){await wakeLock.release();wakeLock=null;wakeText('Keep-awake disabled')}else await requestWake()}$('wake').onclick=toggleWake;$('wake2').onclick=toggleWake;document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&startAt&&(!wakeLock||wakeLock.released))requestWake()});wakeText('wakeLock'in navigator?'Supported on this browser':'Not supported by this browser');
-$('copy').onclick=()=>{if(status.listenUrl)navigator.clipboard.writeText(status.listenUrl)};function renderHist(){const h=hist();$('historyList').innerHTML=h.length?h.map(x=>'<div class="hist"><div><b>'+new Date(x.at).toLocaleString()+'</b><div class="muted">Completed broadcast</div></div><div>'+fmt(x.duration)+'</div></div>').join(''):'<div class="empty">No broadcasts recorded on this device yet.</div>'}$('clear').onclick=()=>{localStorage.removeItem('sfl.history');renderHist()};renderHist();navigator.mediaDevices?.addEventListener?.('devicechange',devices);devices();
+(function(){
+  'use strict';
+  function byId(id){ return document.getElementById(id); }
+  function all(sel){ return Array.prototype.slice.call(document.querySelectorAll(sel)); }
+  var mediaStream=null, audioCtx=null, analyser=null, recorder=null, socket=null, timerHandle=null, startedAt=0, wakeLock=null, appStatus={};
+
+  window.signalFlowSignIn=function(){
+    var input=byId('token'), msg=byId('authMsg'), modal=byId('auth');
+    var value=input && input.value ? input.value.replace(/^\s+|\s+$/g,'') : '';
+    if(!value){ if(msg) msg.textContent='Please enter the broadcaster key.'; return; }
+    try{ sessionStorage.setItem('sfl.token',value); }catch(e){ try{ localStorage.setItem('sfl.token',value); }catch(ignore){} }
+    if(modal){ modal.className+=' hide'; modal.style.display='none'; }
+  };
+
+  function getToken(){
+    try{return sessionStorage.getItem('sfl.token')||localStorage.getItem('sfl.token')||'';}catch(e){return '';}
+  }
+  function fmt(seconds){
+    seconds=Math.max(0,Math.floor(seconds||0));
+    function pad(n){return String(n).length<2?'0'+n:String(n);}
+    return pad(Math.floor(seconds/3600))+':'+pad(Math.floor(seconds/60)%60)+':'+pad(seconds%60);
+  }
+  function setView(name){
+    all('.view').forEach(function(el){ if(el.id===name) el.classList.add('active'); else el.classList.remove('active'); });
+    all('[data-view]').forEach(function(el){ if(el.getAttribute('data-view')===name) el.classList.add('active'); else el.classList.remove('active'); });
+    var t=byId('pageTitle'); if(t) t.textContent=name.charAt(0).toUpperCase()+name.slice(1);
+  }
+  window.signalFlowSetView=setView;
+
+  function readHistory(){ try{return JSON.parse(localStorage.getItem('sfl.history')||'[]');}catch(e){return [];} }
+  function renderHistory(){
+    var el=byId('historyList'); if(!el)return;
+    var list=readHistory();
+    if(!list.length){el.innerHTML='<div class="empty">No broadcasts recorded on this device yet.</div>';return;}
+    var html='';
+    list.forEach(function(x){html+='<div class="hist"><div><b>'+new Date(x.at).toLocaleString()+'</b><div class="muted">Completed broadcast</div></div><div>'+fmt(x.duration)+'</div></div>';});
+    el.innerHTML=html;
+  }
+  function saveHistory(duration){
+    try{var list=readHistory();list.unshift({at:new Date().toISOString(),duration:duration});localStorage.setItem('sfl.history',JSON.stringify(list.slice(0,30)));}catch(e){}
+    renderHistory();
+  }
+
+  function poll(){
+    fetch('/api/status',{cache:'no-store'}).then(function(r){return r.json();}).then(function(s){
+      appStatus=s||{};
+      if(byId('topState'))byId('topState').textContent=s.active?'Live':'Relay online';
+      if(byId('sideState'))byId('sideState').textContent=s.active?'Broadcasting':'Relay online';
+      if(byId('topDot'))byId('topDot').className='dot ok';
+      if(byId('sideDot'))byId('sideDot').className='dot ok';
+      if(byId('relayCheck')){byId('relayCheck').className='checkmark ok';byId('relayCheck').textContent='✓';}
+      if(byId('relayText'))byId('relayText').textContent='Connected';
+      var configured=!!s.configured;
+      if(byId('outputCheck')){byId('outputCheck').className='checkmark'+(configured?' ok':'');byId('outputCheck').textContent=configured?'✓':'3';}
+      if(byId('outputText'))byId('outputText').textContent=configured?'Configured':'Awaiting Icecast settings';
+      if(byId('listenUrl'))byId('listenUrl').textContent=s.listenUrl||'Output URL not configured';
+      if(byId('player')&&s.listenUrl)byId('player').src=s.listenUrl;
+    }).catch(function(){
+      if(byId('topState'))byId('topState').textContent='Relay unavailable';
+      if(byId('sideState'))byId('sideState').textContent='Offline';
+      if(byId('relayText'))byId('relayText').textContent='Unavailable';
+    });
+  }
+
+  function refreshDevices(){
+    if(!navigator.mediaDevices||!navigator.mediaDevices.enumerateDevices)return Promise.resolve();
+    return navigator.mediaDevices.enumerateDevices().then(function(devices){
+      var select=byId('device'); if(!select)return;
+      var old=select.value; select.innerHTML='<option value="">Default microphone</option>';
+      var count=0;
+      devices.forEach(function(d){
+        if(d.kind==='audioinput'){count++;var o=document.createElement('option');o.value=d.deviceId;o.textContent=d.label||('Microphone '+count);select.appendChild(o);}
+      });
+      for(var i=0;i<select.options.length;i++){if(select.options[i].value===old){select.value=old;break;}}
+    }).catch(function(){});
+  }
+  window.signalFlowRefreshDevices=refreshDevices;
+
+  function meterLoop(){
+    if(!analyser)return;
+    var a=new Uint8Array(analyser.fftSize); analyser.getByteTimeDomainData(a);
+    var sum=0,i,x; for(i=0;i<a.length;i++){x=(a[i]-128)/128;sum+=x*x;}
+    var rms=Math.sqrt(sum/a.length), meter=byId('meter'); if(meter)meter.style.width=Math.min(100,rms*360)+'%';
+    window.requestAnimationFrame(meterLoop);
+  }
+
+  window.signalFlowPrepare=function(){
+    var msg=byId('message');
+    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){if(msg)msg.textContent='Microphone access is not supported in this browser.';return;}
+    if(mediaStream){mediaStream.getTracks().forEach(function(t){t.stop();});}
+    var selected=byId('device')?byId('device').value:'';
+    var constraints={audio:selected?{deviceId:{exact:selected}}:true};
+    navigator.mediaDevices.getUserMedia(constraints).then(function(s){
+      mediaStream=s; return refreshDevices();
+    }).then(function(){
+      var track=mediaStream.getAudioTracks()[0], label=(track&&track.label)||'Microphone';
+      if(byId('activeMic'))byId('activeMic').textContent=label;
+      if(byId('micCheck')){byId('micCheck').className='checkmark ok';byId('micCheck').textContent='✓';}
+      if(byId('micText'))byId('micText').textContent=label;
+      if(byId('go'))byId('go').disabled=false;
+      if(msg)msg.textContent='Microphone ready. Check the level before going live.';
+      var AC=window.AudioContext||window.webkitAudioContext;
+      if(AC){audioCtx=new AC();var src=audioCtx.createMediaStreamSource(mediaStream);analyser=audioCtx.createAnalyser();analyser.fftSize=512;src.connect(analyser);meterLoop();}
+    }).catch(function(e){if(msg)msg.textContent='Microphone access failed: '+(e&&e.message?e.message:e);});
+  };
+
+  function wakeText(t){
+    if(byId('wakeText'))byId('wakeText').textContent=t;
+    if(byId('wakeSupport'))byId('wakeSupport').textContent=t;
+    var on=wakeLock&&!wakeLock.released;
+    if(byId('wake'))byId('wake').className='switch'+(on?' on':'');
+    if(byId('wake2'))byId('wake2').className='switch'+(on?' on':'');
+  }
+  function requestWake(){
+    if(!navigator.wakeLock||!navigator.wakeLock.request){wakeText('Wake lock not supported by this browser');return Promise.resolve();}
+    return navigator.wakeLock.request('screen').then(function(lock){wakeLock=lock;wakeText('Screen will stay awake');lock.addEventListener('release',function(){wakeText('Wake lock released');});}).catch(function(){wakeText('Wake lock unavailable');});
+  }
+  window.signalFlowToggleWake=function(){
+    if(wakeLock&&!wakeLock.released){return wakeLock.release().then(function(){wakeLock=null;wakeText('Keep-awake disabled');});}
+    return requestWake();
+  };
+
+  function finishBroadcast(closeSocket){
+    var dur=startedAt?Math.round((Date.now()-startedAt)/1000):0;
+    try{if(recorder&&recorder.state!=='inactive')recorder.stop();}catch(e){}
+    try{if(closeSocket&&socket)socket.close();}catch(e){}
+    if(timerHandle)clearInterval(timerHandle);
+    if(startedAt)saveHistory(dur);
+    startedAt=0; recorder=null; socket=null;
+    if(byId('timer'))byId('timer').textContent='00:00:00';
+    if(byId('badge')){byId('badge').className='badge';byId('badge').textContent='● OFF AIR';}
+    if(byId('headline'))byId('headline').textContent='Ready to broadcast';
+    if(byId('go')){byId('go').textContent='● Go Live';byId('go').className='btn go';}
+    if(byId('message'))byId('message').textContent='Broadcast ended.';
+  }
+
+  function beginBroadcast(){
+    if(!mediaStream){window.signalFlowPrepare();if(byId('message'))byId('message').textContent='Prepare the microphone first, then press Go Live again.';return;}
+    if(!appStatus.configured){if(byId('message'))byId('message').textContent='The interface is ready, but Icecast output has not been configured in Railway yet.';return;}
+    if(typeof MediaRecorder==='undefined'){if(byId('message'))byId('message').textContent='Live audio encoding is not supported by this browser.';return;}
+    var mime='',choices=['audio/webm;codecs=opus','audio/mp4','audio/webm'],i;
+    if(MediaRecorder.isTypeSupported){for(i=0;i<choices.length;i++){if(MediaRecorder.isTypeSupported(choices[i])){mime=choices[i];break;}}}
+    var proto=location.protocol==='https:'?'wss':'ws';
+    socket=new WebSocket(proto+'://'+location.host+'/live?token='+encodeURIComponent(getToken())+'&mime='+encodeURIComponent(mime));
+    socket.binaryType='arraybuffer';
+    socket.onopen=function(){
+      try{recorder=mime?new MediaRecorder(mediaStream,{mimeType:mime}):new MediaRecorder(mediaStream);}
+      catch(e){if(byId('message'))byId('message').textContent='Could not start audio encoder: '+e.message;return;}
+      recorder.ondataavailable=function(e){if(e.data&&e.data.size&&socket&&socket.readyState===1){e.data.arrayBuffer().then(function(b){socket.send(b);});}};
+      recorder.start(500);startedAt=Date.now();timerHandle=setInterval(function(){if(byId('timer'))byId('timer').textContent=fmt((Date.now()-startedAt)/1000);},250);
+      if(byId('badge')){byId('badge').className='badge live';byId('badge').textContent='● LIVE';}
+      if(byId('headline'))byId('headline').textContent='Live on air';
+      if(byId('go')){byId('go').textContent='■ End Broadcast';byId('go').className='btn go live';}
+      if(byId('message'))byId('message').textContent='Broadcasting to SignalFlow Live.';
+      requestWake();
+    };
+    socket.onclose=function(){if(startedAt)finishBroadcast(false);};
+    socket.onerror=function(){if(byId('message'))byId('message').textContent='Could not connect to the broadcast relay.';};
+  }
+  window.signalFlowGo=function(){if(startedAt)finishBroadcast(true);else beginBroadcast();};
+
+  function boot(){
+    all('[data-view]').forEach(function(b){b.onclick=function(){setView(b.getAttribute('data-view'));};});
+    if(byId('prepare'))byId('prepare').onclick=window.signalFlowPrepare;
+    if(byId('refresh'))byId('refresh').onclick=refreshDevices;
+    if(byId('test'))byId('test').onclick=window.signalFlowPrepare;
+    if(byId('go'))byId('go').onclick=window.signalFlowGo;
+    if(byId('wake'))byId('wake').onclick=window.signalFlowToggleWake;
+    if(byId('wake2'))byId('wake2').onclick=window.signalFlowToggleWake;
+    if(byId('copy'))byId('copy').onclick=function(){if(appStatus.listenUrl&&navigator.clipboard)navigator.clipboard.writeText(appStatus.listenUrl);};
+    if(byId('clear'))byId('clear').onclick=function(){try{localStorage.removeItem('sfl.history');}catch(e){}renderHistory();};
+    if(byId('signIn'))byId('signIn').onclick=window.signalFlowSignIn;
+    try{if(getToken()&&byId('auth')){byId('auth').classList.add('hide');byId('auth').style.display='none';}}catch(e){}
+    if(navigator.mediaDevices&&navigator.mediaDevices.addEventListener)navigator.mediaDevices.addEventListener('devicechange',refreshDevices);
+    document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible'&&startedAt&&(!wakeLock||wakeLock.released))requestWake();});
+    wakeText(navigator.wakeLock&&navigator.wakeLock.request?'Supported on this browser':'Not supported by this browser');
+    renderHistory(); refreshDevices(); poll(); window.setInterval(poll,3000);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
+})();
 </script>
 </body></html>

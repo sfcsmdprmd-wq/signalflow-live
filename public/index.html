@@ -41,7 +41,7 @@
   'use strict';
   function byId(id){ return document.getElementById(id); }
   function all(sel){ return Array.prototype.slice.call(document.querySelectorAll(sel)); }
-  var mediaStream=null, audioCtx=null, analyser=null, recorder=null, socket=null, timerHandle=null, startedAt=0, wakeLock=null, appStatus={}, awaitingOutput=false;
+  var mediaStream=null, audioCtx=null, analyser=null, recorder=null, socket=null, timerHandle=null, startedAt=0, wakeLock=null, appStatus={}, awaitingOutput=false, socketOpened=false;
 
   window.signalFlowSignIn=function(){
     var input=byId('token'), msg=byId('authMsg'), modal=byId('auth');
@@ -55,6 +55,14 @@
 
   function getToken(){
     try{return sessionStorage.getItem('sfl.token')||localStorage.getItem('sfl.token')||'';}catch(e){return '';}
+  }
+  function requireFreshLogin(message){
+    try{sessionStorage.removeItem('sfl.token');localStorage.removeItem('sfl.token');}catch(e){}
+    var modal=byId('auth'), msg=byId('authMsg'), input=byId('token');
+    if(msg)msg.textContent=message||'Please enter the current broadcaster key.';
+    if(input)input.value='';
+    if(modal){modal.classList.remove('hide');modal.style.display='grid';}
+    setTimeout(function(){try{if(input)input.focus();}catch(e){}},100);
   }
   function fmt(seconds){
     seconds=Math.max(0,Math.floor(seconds||0));
@@ -233,7 +241,9 @@
     var proto=location.protocol==='https:'?'wss':'ws';
     socket=new WebSocket(proto+'://'+location.host+'/live?token='+encodeURIComponent(getToken())+'&mime='+encodeURIComponent(mime));
     socket.binaryType='arraybuffer';
+    socketOpened=false;
     socket.onopen=function(){
+      socketOpened=true;
       try{recorder=mime?new MediaRecorder(mediaStream,{mimeType:mime}):new MediaRecorder(mediaStream);}
       catch(e){if(byId('message'))byId('message').textContent='Could not start audio encoder: '+e.message;return;}
       recorder.ondataavailable=function(e){if(e.data&&e.data.size&&socket&&socket.readyState===1){e.data.arrayBuffer().then(function(b){socket.send(b);});}};
@@ -244,8 +254,13 @@
       if(byId('message'))byId('message').textContent='Audio is reaching SignalFlow. Waiting for the broadcast server to confirm the live source…';
       requestWake();
     };
-    socket.onclose=function(){if(startedAt)finishBroadcast(false);};
-    socket.onerror=function(){if(byId('message'))byId('message').textContent='Could not connect to the broadcast relay.';};
+    socket.onclose=function(){
+      if(startedAt)finishBroadcast(false);
+      else if(!socketOpened)requireFreshLogin('The broadcaster key was rejected. Please enter the current key and try again.');
+    };
+    socket.onerror=function(){
+      if(byId('message'))byId('message').textContent='Could not connect to the broadcast relay.';
+    };
   }
   window.signalFlowGo=function(){if(startedAt)finishBroadcast(true);else beginBroadcast();};
 

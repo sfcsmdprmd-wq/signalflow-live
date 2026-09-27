@@ -59,10 +59,15 @@ function serve(req,res){
    req.on('close',()=>liveListeners.delete(res));
    return;
  }
- if(u.pathname==='/api/status') return json(res,200,{
-   ok:true,configured:Boolean(cfg.host&&cfg.pass),active:Boolean(active&&active.ready),stationName:cfg.station,
-   outputFormat:cfg.format,bitrate:cfg.bitrate,listenUrl:(active&&active.ready?'/listen':(cfg.listen||'/listen')),directListenUrl:'/listen',mount:cfg.mount,lastError
- });
+ if(u.pathname==='/api/status'){
+   const proto=(req.headers['x-forwarded-proto']||'https').split(',')[0].trim();
+   const host=req.headers.host||'localhost';
+   const directListenUrl=proto+'://'+host+'/listen';
+   return json(res,200,{
+     ok:true,configured:Boolean(cfg.host&&cfg.pass),active:Boolean(active&&active.ready),stationName:cfg.station,
+     outputFormat:cfg.format,bitrate:cfg.bitrate,listenUrl:directListenUrl,directListenUrl:directListenUrl,mount:cfg.mount,lastError
+   });
+ }
  let p=u.pathname==='/'?'/index.html':u.pathname;
  p=path.normalize(p).replace(/^(..[/\\])+/, '');
  const file=path.join(publicDir,p);

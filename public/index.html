@@ -98,7 +98,7 @@
   'use strict';
   function byId(id){ return document.getElementById(id); }
   function all(sel){ return Array.prototype.slice.call(document.querySelectorAll(sel)); }
-  var mediaStream=null, audioCtx=null, analyser=null, recorder=null, socket=null, timerHandle=null, startedAt=0, wakeLock=null, appStatus={}, awaitingOutput=false, socketOpened=false, micMuted=false, mixDest=null, micSource=null, audioLibrary=[], userRole='broadcaster', deckSources={}, deckMonitorBuffers={}, deckMonitorSources={}, deckMonitorStartedAt={}, hotkeyMonitorPairs=[], playoutProgramGain=null, playoutMonitorGain=null, micMonitorGain=null, monitorPlayout=false, monitorMic=false, playoutDucked=false, expectedMicLabel='', lastRouteMicLabel='', activeDeckNumber=0;
+  var mediaStream=null, audioCtx=null, analyser=null, recorder=null, socket=null, timerHandle=null, startedAt=0, wakeLock=null, appStatus={}, awaitingOutput=false, socketOpened=false, micMuted=false, mixDest=null, micSource=null, audioLibrary=[], userRole='broadcaster', deckSources={}, deckMonitorBuffers={}, deckMonitorSources={}, deckMonitorStartedAt={}, hotkeyMonitorPairs=[], playoutProgramGain=null, playoutMonitorGain=null, micMonitorGain=null, monitorPlayout=false, monitorMic=false, playoutDucked=false, expectedMicLabel='', lastRouteMicLabel='', activeDeckNumber=0, deckPlayStartedAt={};
 
   window.signalFlowSignIn=function(){
     var input=byId('token'), msg=byId('authMsg'), modal=byId('auth'), button=byId('signIn');
@@ -372,7 +372,19 @@
     var dock=byId('playoutDock');
     if(!dock)return;
     var el=n?byId('deckAudio'+n):null;
-    if(!el||el.paused||el.ended||!isFinite(el.duration)){
+    if(!el){
+      dock.className='playoutDock';
+      activeDeckNumber=0;
+      return;
+    }
+    var duration=isFinite(el.duration)&&el.duration>0?el.duration:(deckMonitorBuffers[n]&&isFinite(deckMonitorBuffers[n].duration)?deckMonitorBuffers[n].duration:0);
+    var elapsed=isFinite(el.currentTime)?el.currentTime:0;
+    if(deckPlayStartedAt[n]&&!el.ended){
+      var wallElapsed=Math.max(0,(Date.now()-deckPlayStartedAt[n])/1000);
+      if(wallElapsed>elapsed)elapsed=wallElapsed;
+    }
+    var playing=(!el.paused&&!el.ended)||(activeDeckNumber===n&&!!deckPlayStartedAt[n]);
+    if(!playing){
       if(activeDeckNumber===n||!n){
         dock.className='playoutDock';
         activeDeckNumber=0;
@@ -380,11 +392,11 @@
       return;
     }
     activeDeckNumber=n;
-    var remaining=Math.max(0,el.duration-el.currentTime);
-    dock.className='playoutDock show'+(remaining>0&&remaining<=10?' ending':'');
+    var remaining=duration?Math.max(0,duration-elapsed):0;
+    dock.className='playoutDock show'+(duration&&remaining>0&&remaining<=10?' ending':'');
     if(byId('dockTitle'))byId('dockTitle').textContent=deckItemName(n);
     if(byId('dockMeta'))byId('dockMeta').textContent='Player '+n;
-    if(byId('dockTime'))byId('dockTime').textContent=formatShort(remaining)+' left';
+    if(byId('dockTime'))byId('dockTime').textContent=duration?formatShort(remaining)+' left':'Playing';
     if(byId('dockMute'))byId('dockMute').textContent=micMuted?'Unmute Mic':'Mute Mic';
     updateDuckUi();
   }
@@ -408,6 +420,7 @@
     var el=byId('deckAudio'+n),item=audioLibrary.find(function(x){return x.id===id;});
     if(!el)return;
     try{el.pause();el.currentTime=0;}catch(e){}
+    deckPlayStartedAt[n]=0;
     el.src=item?item.url:'';el.load();
     stopDeckMonitor(n);deckMonitorBuffers[n]=null;
     if(item&&item.url){decodeMonitorAudio(item.url,function(buffer){deckMonitorBuffers[n]=buffer;if(buffer&&monitorPlayout&&!el.paused)startDeckMonitor(n);});}
@@ -419,13 +432,14 @@
     var el=byId('deckAudio'+n);if(!el||!el.src)return;
     ensureAudioGraph();
     try{if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume();}catch(e){}
+    deckPlayStartedAt[n]=Date.now()-Math.round((el.currentTime||0)*1000);
     var p=el.play();
     startDeckMonitor(n);
     activeDeckNumber=n;
     updatePlayoutDock(n);
     if(p&&p.then)p.then(function(){updatePlayoutDock(n);}).catch(function(e){if(byId('audioMessage'))byId('audioMessage').textContent='Could not play audio: '+e.message;});
   }
-  function stopDeck(n){var el=byId('deckAudio'+n);if(!el)return;try{el.pause();el.currentTime=0;}catch(e){}stopDeckMonitor(n);var deck=el.closest?el.closest('.deck'):null;if(deck)deck.classList.remove('ending');refreshDockAfterStop(n);}
+  function stopDeck(n){var el=byId('deckAudio'+n);if(!el)return;deckPlayStartedAt[n]=0;try{el.pause();el.currentTime=0;}catch(e){}stopDeckMonitor(n);var deck=el.closest?el.closest('.deck'):null;if(deck)deck.classList.remove('ending');refreshDockAfterStop(n);}
   function wireDeck(n){
     var sel=byId('deckSelect'+n),play=byId('deckPlay'+n),stop=byId('deckStop'+n),el=byId('deckAudio'+n);
     if(sel)sel.onchange=function(){loadDeck(n,sel.value);};
@@ -453,7 +467,8 @@
       el.addEventListener('ended',function(){
         if(byId('deckProgress'+n))byId('deckProgress'+n).style.width='0';
         var deck=el.closest?el.closest('.deck'):null;if(deck)deck.classList.remove('ending');
-        stopDeckMonitor(n,true);
+        deckPlayStartedAt[n]=0;
+        stopDeckMonitor(n);
         refreshDockAfterStop(n);
       });
     }
@@ -943,7 +958,7 @@
     if(navigator.mediaDevices&&navigator.mediaDevices.addEventListener)navigator.mediaDevices.addEventListener('devicechange',function(){refreshDevices();setTimeout(checkRouting,350);});
     document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible'&&startedAt&&(!wakeLock||wakeLock.released))requestWake();});
     wakeText(navigator.wakeLock&&navigator.wakeLock.request?'Supported on this browser':'Not supported by this browser');
-    renderHistory(); refreshDevices(); checkRouting(); installLivePlayer(); poll(); loadMe(); window.setInterval(poll,3000); window.setInterval(checkRouting,5000);
+    renderHistory(); refreshDevices(); checkRouting(); installLivePlayer(); poll(); loadMe(); window.setInterval(poll,3000); window.setInterval(checkRouting,5000); window.setInterval(function(){if(activeDeckNumber)updatePlayoutDock(activeDeckNumber);},250);
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
 })();

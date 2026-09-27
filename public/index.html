@@ -34,6 +34,7 @@
 <div style="margin-top:18px"><div class="muted">SHARED HOTKEYS</div><div class="hotkeys" id="hotkeys"><span class="muted">No hotkeys loaded.</span></div></div>
 <div class="audioUpload"><label>Upload audio<input id="audioUpload" type="file"></label><button class="btn secondary" id="uploadAudio">Upload to library</button></div>
 <p class="muted" id="audioMessage">Uploaded clips are stored in SignalFlow and can be loaded into any player.</p>
+<div style="margin-top:18px"><div class="muted">AUDIO LIBRARY</div><div id="audioLibraryList"><div class="empty">Loading audio library…</div></div></div>
 </div>
 <div class="panel audioPanel"><div class="muted">CONFIDENCE CHECK</div><h3>Before you go live</h3><div class="checks">
 <div class="check"><span class="checkmark" id="micCheck">1</span><div><b>Microphone</b><small id="micText">Not selected</small></div></div>
@@ -166,6 +167,7 @@
         sel.innerHTML=html;if(current)sel.value=current;
       }
       renderHotkeys(data.hotkeys||[]);
+      renderAudioLibrary();
       if(userRole==='admin')renderHotkeyAdmin();
     }).catch(function(e){if(byId('audioMessage'))byId('audioMessage').textContent=e.message;});
   }
@@ -218,6 +220,29 @@
       el.addEventListener('ended',function(){if(byId('deckProgress'+n))byId('deckProgress'+n).style.width='0';});
     }
   }
+  function renderAudioLibrary(){
+    var el=byId('audioLibraryList');if(!el)return;
+    if(!audioLibrary.length){el.innerHTML='<div class="empty">No uploaded audio yet.</div>';return;}
+    el.innerHTML=audioLibrary.map(function(x){
+      var size=x.size?Math.max(1,Math.round(x.size/1024/1024*10)/10)+' MB':'';
+      var owner=x.ownerName?('Uploaded by '+x.ownerName):'';
+      var meta=[owner,size].filter(Boolean).join(' · ');
+      var del=x.canDelete?'<button class="btn secondary mini" onclick="signalFlowDeleteAudio(\''+x.id+'\',\''+esc(x.name).replace(/'/g,'&#39;')+'\')">Delete</button>':'';
+      return '<div class="libraryRow"><div><b>'+esc(x.name)+'</b><div class="libraryMeta">'+esc(meta)+'</div></div><div>'+del+'</div></div>';
+    }).join('');
+  }
+  window.signalFlowDeleteAudio=function(id,name){
+    if(!confirm('Delete "'+name+'"? This will remove it from SignalFlow and any player or hotkey using it.'))return;
+    api('/api/audio/'+id+'/delete',{method:'POST'}).then(function(){
+      for(var n=1;n<=3;n++){
+        var sel=byId('deckSelect'+n),audio=byId('deckAudio'+n);
+        if(sel&&sel.value===id){sel.value='';if(audio){try{audio.pause();audio.removeAttribute('src');audio.load();}catch(e){}}}
+      }
+      if(byId('audioMessage'))byId('audioMessage').textContent='Audio deleted.';
+      loadAudioLibrary();
+    }).catch(function(e){alert(e.message);});
+  };
+
   function renderHotkeys(items){
     var el=byId('hotkeys');if(!el)return;
     if(!items.length){el.innerHTML='<span class="muted">No hotkeys loaded.</span>';return;}
@@ -237,7 +262,7 @@
     if(!audioLibrary.length){el.innerHTML='<div class="empty">Upload some audio first.</div>';return;}
     el.innerHTML=audioLibrary.map(function(x){
       var checked=x.hotkey?' checked':'',order=x.hotkeyOrder||1;
-      return '<div class="libraryRow"><div><b>'+esc(x.name)+'</b><div class="libraryMeta">'+esc(x.ownerName||'')+'</div></div><div style="display:flex;gap:6px;align-items:center"><select id="hkOrder_'+x.id+'" style="width:72px;margin:0;padding:8px">'+[1,2,3,4,5,6].map(function(n){return '<option value="'+n+'"'+(n===order?' selected':'')+'>'+n+'</option>';}).join('')+'</select><button class="btn secondary mini" onclick="signalFlowHotkey(\''+x.id+'\','+(x.hotkey?'false':'true')+')">'+(x.hotkey?'Remove':'Make hotkey')+'</button></div></div>';
+      return '<div class="libraryRow"><div><b>'+esc(x.name)+'</b><div class="libraryMeta">'+esc(x.ownerName||'')+'</div></div><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><select id="hkOrder_'+x.id+'" style="width:72px;margin:0;padding:8px">'+[1,2,3,4,5,6].map(function(n){return '<option value="'+n+'"'+(n===order?' selected':'')+'>'+n+'</option>';}).join('')+'</select><button class="btn secondary mini" onclick="signalFlowHotkey(\''+x.id+'\','+(x.hotkey?'false':'true')+')">'+(x.hotkey?'Remove':'Make hotkey')+'</button><button class="btn secondary mini" onclick="signalFlowDeleteAudio(\''+x.id+'\',\''+esc(x.name).replace(/'/g,'&#39;')+'\')">Delete</button></div></div>';
     }).join('');
   }
   window.signalFlowHotkey=function(id,enabled){

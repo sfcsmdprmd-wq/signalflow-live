@@ -6,7 +6,7 @@
 <title>SignalFlow Live</title>
 <style>
 :root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#f5f7fa;background:#080b0f;--bg:#080b0f;--panel:#11161d;--panel2:#151b23;--line:#252d38;--muted:#8d98a7;--red:#ff3b45;--green:#29d17d}
-*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 70% -20%,#172231 0,#0b1016 38%,#080b0f 70%);color:#f5f7fa}button,input,select{font:inherit}.shell{min-height:100vh;display:grid;grid-template-columns:250px 1fr}.side{height:100vh;position:sticky;top:0;padding:24px 17px;background:#090d12;border-right:1px solid #202833;display:flex;flex-direction:column}.brand{display:flex;align-items:center;gap:11px;margin-bottom:28px}.mark{width:42px;height:42px;border-radius:13px;background:linear-gradient(145deg,#ff4c54,#c31828);display:flex;align-items:center;justify-content:center;gap:3px}.mark i{display:block;width:3px;background:white;border-radius:5px}.mark i:nth-child(1){height:12px}.mark i:nth-child(2){height:23px}.mark i:nth-child(3){height:17px}.mark i:nth-child(4){height:9px}.brand strong{letter-spacing:.08em}.brand small{display:block;color:#ff5960;font-weight:900;letter-spacing:.2em;margin-top:3px}.nav{display:grid;gap:8px}.nav button{border:1px solid transparent;background:transparent;color:#8995a5;padding:12px 13px;border-radius:12px;text-align:left;font-weight:750}.nav button.active{color:white;background:#151b23;border-color:#252f3b;box-shadow:inset 3px 0 0 var(--red)}.sidefoot{margin-top:auto}.status{padding:13px;border:1px solid #222b35;background:#10151c;border-radius:12px;font-size:12px;color:#9ca7b5}.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#6d7784;margin-right:7px}.dot.ok{background:var(--green)}main{min-width:0}.top{height:82px;border-bottom:1px solid #202833;display:flex;align-items:center;justify-content:space-between;padding:0 30px;background:rgba(8,11,15,.78);backdrop-filter:blur(15px);position:sticky;top:0;z-index:5}.top h1{font-size:22px;margin:0}.pill{border:1px solid #29333f;background:#10161d;padding:9px 12px;border-radius:999px;color:#bbc4cf;font-size:12px}.content{max-width:1180px;margin:auto;padding:30px}.view{display:none}.view.active{display:block}.grid{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(290px,.8fr);gap:20px}.two{display:grid;grid-template-columns:1fr 1fr;gap:20px}.panel{background:linear-gradient(180deg,#12181f,#0e1319);border:1px solid #252e39;border-radius:20px;padding:24px;box-shadow:0 25px 70px #0004}.panel h2{margin:4px 0 0;font-size:25px}.panel h3{margin:4px 0 16px}.muted{color:#8995a4;font-size:12px;line-height:1.55}.onair{min-height:520px;display:flex;flex-direction:column}.headline{display:flex;justify-content:space-between;gap:15px}.badge{border:1px solid #35404c;border-radius:999px;padding:7px 10px;color:#8e99a8;font-size:11px}.badge.live{color:white;background:#ff3b4513;border-color:#ff3b4577}.timer{font-size:clamp(48px,7vw,76px);letter-spacing:-.05em;font-variant-numeric:tabular-nums;margin:44px 0 26px}.meter{height:22px;background:#080b0f;border:1px solid #2b3541;border-radius:7px;overflow:hidden}.meter>div{width:0;height:100%;background:linear-gradient(90deg,#23c97a 0 62%,#f3c74d 78%,#ff404b 100%);transition:width .08s linear}.meterlabels{display:flex;justify-content:space-between;color:#7e8a99;font-size:10px;margin:8px 0 26px}.mic{display:flex;align-items:center;gap:12px;padding:15px;border:1px solid #222c36;border-radius:13px;background:#0c1117}.mic strong{font-size:13px}.actions{display:grid;grid-template-columns:.75fr 1.25fr;gap:12px;margin-top:auto;padding-top:25px}.btn{border:1px solid transparent;border-radius:13px;padding:14px 17px;color:white;font-weight:850;background:#171e27}.btn.secondary{border-color:#303a46}.btn.go{background:linear-gradient(#ff4550,#d62531)}.btn.go.live{background:linear-gradient(#8b2028,#61161c)}.checks{display:grid}.check{padding:15px 0;border-bottom:1px solid #202832;display:flex;gap:11px}.check b{font-size:13px}.check small{display:block;color:#798595;margin-top:3px}.checkmark{width:25px;height:25px;border:1px solid #34404d;border-radius:50%;display:grid;place-items:center}.checkmark.ok{background:var(--green);border-color:var(--green);color:#06120c}.toggle{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:18px}.switch{width:44px;height:25px;background:#2b3440;border-radius:999px;position:relative}.switch:after{content:"";position:absolute;width:19px;height:19px;left:3px;top:3px;border-radius:50%;background:#aeb7c2;transition:.2s}.switch.on{background:#29d17d44;box-shadow:inset 0 0 0 1px #29d17d88}.switch.on:after{transform:translateX(19px);background:var(--green)}.url{padding:14px;border:1px solid #27313c;border-radius:13px;background:#090d12;overflow-wrap:anywhere;margin:20px 0}label{display:block;font-size:12px;font-weight:750;margin-top:18px}input,select{width:100%;padding:13px 14px;margin-top:7px;border-radius:12px;border:1px solid #303a46;background:#0b1016;color:white}.row{display:flex;gap:10px;margin-top:12px}.history{display:grid;gap:9px}.hist{padding:14px;border:1px solid #222b35;background:#0d1218;border-radius:12px;display:flex;justify-content:space-between;gap:12px}.empty{text-align:center;color:#7f8b9a;padding:35px 10px}.mobile{display:none}.modal{position:fixed;inset:0;z-index:50;background:#030508dd;backdrop-filter:blur(13px);display:grid;place-items:center;padding:20px}.modal.hide{display:none}.card{width:min(430px,100%);padding:27px;background:#10161d;border:1px solid #2a3440;border-radius:22px}.card h2{margin:8px 0}.authbrand{margin-bottom:22px}.full{width:100%;margin-top:15px}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 70% -20%,#172231 0,#0b1016 38%,#080b0f 70%);color:#f5f7fa}button,input,select{font:inherit}input,select{font-size:16px}body{-webkit-text-size-adjust:100%}.shell{min-height:100vh;display:grid;grid-template-columns:250px 1fr}.side{height:100vh;position:sticky;top:0;padding:24px 17px;background:#090d12;border-right:1px solid #202833;display:flex;flex-direction:column}.brand{display:flex;align-items:center;gap:11px;margin-bottom:28px}.mark{width:42px;height:42px;border-radius:13px;background:linear-gradient(145deg,#ff4c54,#c31828);display:flex;align-items:center;justify-content:center;gap:3px}.mark i{display:block;width:3px;background:white;border-radius:5px}.mark i:nth-child(1){height:12px}.mark i:nth-child(2){height:23px}.mark i:nth-child(3){height:17px}.mark i:nth-child(4){height:9px}.brand strong{letter-spacing:.08em}.brand small{display:block;color:#ff5960;font-weight:900;letter-spacing:.2em;margin-top:3px}.nav{display:grid;gap:8px}.nav button{border:1px solid transparent;background:transparent;color:#8995a5;padding:12px 13px;border-radius:12px;text-align:left;font-weight:750}.nav button.active{color:white;background:#151b23;border-color:#252f3b;box-shadow:inset 3px 0 0 var(--red)}.sidefoot{margin-top:auto}.status{padding:13px;border:1px solid #222b35;background:#10151c;border-radius:12px;font-size:12px;color:#9ca7b5}.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#6d7784;margin-right:7px}.dot.ok{background:var(--green)}main{min-width:0}.top{height:82px;border-bottom:1px solid #202833;display:flex;align-items:center;justify-content:space-between;padding:0 30px;background:rgba(8,11,15,.78);backdrop-filter:blur(15px);position:sticky;top:0;z-index:5}.top h1{font-size:22px;margin:0}.pill{border:1px solid #29333f;background:#10161d;padding:9px 12px;border-radius:999px;color:#bbc4cf;font-size:12px}.content{max-width:1180px;margin:auto;padding:30px}.view{display:none}.view.active{display:block}.grid{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(290px,.8fr);gap:20px}.two{display:grid;grid-template-columns:1fr 1fr;gap:20px}.panel{background:linear-gradient(180deg,#12181f,#0e1319);border:1px solid #252e39;border-radius:20px;padding:24px;box-shadow:0 25px 70px #0004}.panel h2{margin:4px 0 0;font-size:25px}.panel h3{margin:4px 0 16px}.muted{color:#8995a4;font-size:12px;line-height:1.55}.onair{min-height:520px;display:flex;flex-direction:column}.headline{display:flex;justify-content:space-between;gap:15px}.badge{border:1px solid #35404c;border-radius:999px;padding:0 11px;height:28px;min-width:86px;color:#8e99a8;font-size:10px;line-height:1;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;flex:0 0 auto}.badge.live{color:white;background:#ff3b4513;border-color:#ff3b4577}.timer{font-size:clamp(48px,7vw,76px);letter-spacing:-.05em;font-variant-numeric:tabular-nums;margin:44px 0 26px}.meter{height:22px;background:#080b0f;border:1px solid #2b3541;border-radius:7px;overflow:hidden}.meter>div{width:0;height:100%;background:linear-gradient(90deg,#23c97a 0 62%,#f3c74d 78%,#ff404b 100%);transition:width .08s linear}.meterlabels{display:flex;justify-content:space-between;color:#7e8a99;font-size:10px;margin:8px 0 26px}.mic{display:flex;align-items:center;gap:12px;padding:15px;border:1px solid #222c36;border-radius:13px;background:#0c1117}.mic strong{font-size:13px}.actions{display:grid;grid-template-columns:.75fr 1.25fr;gap:12px;margin-top:auto;padding-top:25px}.btn{border:1px solid transparent;border-radius:13px;padding:14px 17px;color:white;font-weight:850;background:#171e27}.btn.secondary{border-color:#303a46}.btn.go{background:linear-gradient(#ff4550,#d62531)}.btn.go.live{background:linear-gradient(#8b2028,#61161c)}.checks{display:grid}.check{padding:15px 0;border-bottom:1px solid #202832;display:flex;gap:11px}.check b{font-size:13px}.check small{display:block;color:#798595;margin-top:3px}.checkmark{width:25px;height:25px;border:1px solid #34404d;border-radius:50%;display:grid;place-items:center}.checkmark.ok{background:var(--green);border-color:var(--green);color:#06120c}.toggle{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:18px}.switch{width:44px;height:25px;background:#2b3440;border-radius:999px;position:relative}.switch:after{content:"";position:absolute;width:19px;height:19px;left:3px;top:3px;border-radius:50%;background:#aeb7c2;transition:.2s}.switch.on{background:#29d17d44;box-shadow:inset 0 0 0 1px #29d17d88}.switch.on:after{transform:translateX(19px);background:var(--green)}.url{padding:14px;border:1px solid #27313c;border-radius:13px;background:#090d12;overflow-wrap:anywhere;margin:20px 0}label{display:block;font-size:12px;font-weight:750;margin-top:18px}input,select{width:100%;padding:13px 14px;margin-top:7px;border-radius:12px;border:1px solid #303a46;background:#0b1016;color:white}.row{display:flex;gap:10px;margin-top:12px}.history{display:grid;gap:9px}.hist{padding:14px;border:1px solid #222b35;background:#0d1218;border-radius:12px;display:flex;justify-content:space-between;gap:12px}.empty{text-align:center;color:#7f8b9a;padding:35px 10px}.mobile{display:none}.modal{position:fixed;inset:0;z-index:50;background:#030508dd;backdrop-filter:blur(13px);display:grid;place-items:center;padding:20px}.modal.hide{display:none}.card{width:min(430px,100%);padding:27px;background:#10161d;border:1px solid #2a3440;border-radius:22px}.card h2{margin:8px 0}.authbrand{margin-bottom:22px}.full{width:100%;margin-top:15px}
 @media(max-width:900px){.shell{grid-template-columns:1fr}.side{display:none}.top{padding:calc(14px + env(safe-area-inset-top)) 18px 14px;height:auto;min-height:78px}.content{padding:18px 14px calc(92px + env(safe-area-inset-bottom))}.grid,.two{grid-template-columns:1fr}.mobile{display:grid;grid-template-columns:repeat(4,1fr);position:fixed;left:0;right:0;bottom:0;z-index:20;padding:8px 5px calc(8px + env(safe-area-inset-bottom));background:#080b0ff2;border-top:1px solid #202833}.mobile button{border:0;background:transparent;color:#7f8a98;padding:8px 2px;font-size:10px}.mobile button.active{color:white}}
 @media(max-width:520px){.panel{padding:18px;border-radius:17px}.actions{grid-template-columns:1fr}.timer{font-size:58px}.top h1{font-size:20px}.pill{font-size:0}.pill:after{content:"Status";font-size:11px}}
 </style>
@@ -22,15 +22,15 @@
 <div class="panel onair"><div class="headline"><div><div class="muted">SIGNALFLOW LIVE</div><h2 id="headline">Ready to broadcast</h2></div><div class="badge" id="badge">● OFF AIR</div></div>
 <div class="timer" id="timer">00:00:00</div><div class="meter"><div id="meter"></div></div><div class="meterlabels"><span>-∞</span><span>-18</span><span>-9</span><span>0 dB</span></div>
 <div class="mic"><div>🎙</div><div><small class="muted">ACTIVE MICROPHONE</small><strong id="activeMic">Not selected</strong></div></div>
-<p class="muted" id="message">Prepare your microphone, check the level, then go live.</p>
-<div class="actions"><button class="btn secondary" id="prepare">Prepare microphone</button><button class="btn go" id="go" disabled>● Go Live</button></div></div>
+<p class="muted" id="message">Select your microphone, check the level, then go live.</p>
+<div class="actions"><button class="btn secondary" id="prepare">Select Microphone</button><button class="btn go" id="go" disabled>● Go Live</button></div></div>
 <div class="panel"><div class="muted">CONFIDENCE CHECK</div><h3>Before you go live</h3><div class="checks">
-<div class="check"><span class="checkmark" id="micCheck">1</span><div><b>Microphone</b><small id="micText">Not prepared</small></div></div>
+<div class="check"><span class="checkmark" id="micCheck">1</span><div><b>Microphone</b><small id="micText">Not selected</small></div></div>
 <div class="check"><span class="checkmark" id="relayCheck">2</span><div><b>Relay server</b><small id="relayText">Checking…</small></div></div>
 <div class="check"><span class="checkmark" id="outputCheck">3</span><div><b>Broadcast output</b><small id="outputText">Checking…</small></div></div></div>
 <div class="toggle"><div><b>Keep screen awake</b><div class="muted" id="wakeText">Recommended while broadcasting</div></div><button class="switch" id="wake"></button></div></div>
 </div></section>
-<section class="view" id="output"><div class="two"><div class="panel"><div class="muted">PUBLIC OUTPUT</div><h2>Your live stream</h2><div class="url" id="listenUrl">Output URL not configured</div><button class="btn secondary" id="copy">Copy stream URL</button><p class="muted">Add this URL to the main SignalFlow scheduler as an ordinary stream source.</p></div><div class="panel"><div class="muted">LISTENER CONFIDENCE</div><h3>Test output</h3><audio controls preload="none" id="player" style="width:100%;margin-top:15px"></audio><p class="muted">The listener player becomes usable once the Icecast output URL is configured.</p></div></div></section>
+<section class="view" id="output"><div class="two"><div class="panel"><div class="muted">PUBLIC OUTPUT</div><h2>Your live stream</h2><div class="url" id="listenUrl">Output URL not configured</div><button class="btn secondary" id="copy">Copy stream URL</button><p class="muted">Add this URL to the main SignalFlow scheduler as an ordinary stream source.</p></div><div class="panel"><div class="muted">LISTENER CONFIDENCE</div><h3>Test output</h3><audio controls preload="none" id="player" style="width:100%;margin-top:15px"></audio><p class="muted">The listener player becomes usable once the live output is configured.</p></div></div></section>
 <section class="view" id="settings"><div class="two"><div class="panel"><div class="muted">AUDIO INPUT</div><h2>Microphone</h2><label>Input device<select id="device"><option value="">Default microphone</option></select></label><div class="row"><button class="btn secondary" id="refresh">Refresh devices</button><button class="btn secondary" id="test">Test mic</button></div><p class="muted">External USB, wired and Bluetooth microphones appear here when exposed by the browser/device.</p></div><div class="panel"><div class="muted">DEVICE</div><h2>Broadcast behaviour</h2><div class="toggle"><div><b>Keep screen awake</b><div class="muted">Uses the browser Screen Wake Lock API where supported.</div></div><button class="switch" id="wake2"></button></div><p class="muted" id="wakeSupport"></p></div></div></section>
 <section class="view" id="history"><div class="panel"><div class="headline"><div><div class="muted">THIS DEVICE</div><h2>Broadcast history</h2></div><button class="btn secondary" id="clear">Clear</button></div><div class="history" id="historyList"></div></div></section>
 </div></main></div>
@@ -41,14 +41,16 @@
   'use strict';
   function byId(id){ return document.getElementById(id); }
   function all(sel){ return Array.prototype.slice.call(document.querySelectorAll(sel)); }
-  var mediaStream=null, audioCtx=null, analyser=null, recorder=null, socket=null, timerHandle=null, startedAt=0, wakeLock=null, appStatus={};
+  var mediaStream=null, audioCtx=null, analyser=null, recorder=null, socket=null, timerHandle=null, startedAt=0, wakeLock=null, appStatus={}, awaitingOutput=false;
 
   window.signalFlowSignIn=function(){
     var input=byId('token'), msg=byId('authMsg'), modal=byId('auth');
     var value=input && input.value ? input.value.replace(/^\s+|\s+$/g,'') : '';
     if(!value){ if(msg) msg.textContent='Please enter the broadcaster key.'; return; }
     try{ sessionStorage.setItem('sfl.token',value); }catch(e){ try{ localStorage.setItem('sfl.token',value); }catch(ignore){} }
+    try{if(input)input.blur();}catch(e){}
     if(modal){ modal.className+=' hide'; modal.style.display='none'; }
+    setTimeout(function(){try{window.scrollTo(0,0);}catch(e){}},50);
   };
 
   function getToken(){
@@ -83,15 +85,35 @@
   function poll(){
     fetch('/api/status',{cache:'no-store'}).then(function(r){return r.json();}).then(function(s){
       appStatus=s||{};
-      if(byId('topState'))byId('topState').textContent=s.active?'Live':'Relay online';
-      if(byId('sideState'))byId('sideState').textContent=s.active?'Broadcasting':'Relay online';
-      if(byId('topDot'))byId('topDot').className='dot ok';
-      if(byId('sideDot'))byId('sideDot').className='dot ok';
+      var isLive=!!s.active;
+      var state=s.connectionState||'idle';
+      if(byId('topState'))byId('topState').textContent=isLive?'Live':(state==='reconnecting'?'Reconnecting':state==='connecting'?'Connecting':'Relay online');
+      if(byId('sideState'))byId('sideState').textContent=isLive?'Broadcasting':(state==='reconnecting'?'Reconnecting output':state==='connecting'?'Connecting output':'Relay online');
+      if(byId('topDot'))byId('topDot').className='dot'+(isLive?' ok':'');
+      if(byId('sideDot'))byId('sideDot').className='dot'+(isLive?' ok':'');
       if(byId('relayCheck')){byId('relayCheck').className='checkmark ok';byId('relayCheck').textContent='✓';}
       if(byId('relayText'))byId('relayText').textContent='Connected';
       var configured=!!s.configured;
-      if(byId('outputCheck')){byId('outputCheck').className='checkmark'+(configured?' ok':'');byId('outputCheck').textContent=configured?'✓':'3';}
-      if(byId('outputText'))byId('outputText').textContent=configured?'Configured':'Awaiting Icecast settings';
+      var outputReady=isLive || (!startedAt && configured);
+      if(byId('outputCheck')){byId('outputCheck').className='checkmark'+(outputReady?' ok':'');byId('outputCheck').textContent=outputReady?'✓':'3';}
+      if(byId('outputText')){
+        if(isLive)byId('outputText').textContent='Live source connected';
+        else if(state==='reconnecting')byId('outputText').textContent='Reconnecting automatically…';
+        else if(state==='connecting')byId('outputText').textContent='Connecting to broadcast server…';
+        else byId('outputText').textContent=configured?'Configured':'Awaiting broadcast output settings';
+      }
+      if(startedAt){
+        if(isLive && awaitingOutput){
+          awaitingOutput=false;
+          if(byId('badge')){byId('badge').className='badge live';byId('badge').textContent='● ON AIR';}
+          if(byId('headline'))byId('headline').textContent='Live on air';
+          if(byId('message'))byId('message').textContent='Broadcast output confirmed.';
+        }else if(!isLive && state==='reconnecting'){
+          if(byId('badge')){byId('badge').className='badge';byId('badge').textContent='● RECONNECT';}
+          if(byId('headline'))byId('headline').textContent='Reconnecting output';
+          if(byId('message'))byId('message').textContent='The source connection dropped. SignalFlow is reconnecting automatically.';
+        }
+      }
       if(byId('listenUrl'))byId('listenUrl').textContent=s.listenUrl||'Output URL not configured';
       if(byId('player')&&s.listenUrl){
         byId('player').setAttribute('data-live-url',s.listenUrl);
@@ -194,7 +216,7 @@
     try{if(closeSocket&&socket)socket.close();}catch(e){}
     if(timerHandle)clearInterval(timerHandle);
     if(startedAt)saveHistory(dur);
-    startedAt=0; recorder=null; socket=null;
+    startedAt=0; awaitingOutput=false; recorder=null; socket=null;
     if(byId('timer'))byId('timer').textContent='00:00:00';
     if(byId('badge')){byId('badge').className='badge';byId('badge').textContent='● OFF AIR';}
     if(byId('headline'))byId('headline').textContent='Ready to broadcast';
@@ -203,8 +225,8 @@
   }
 
   function beginBroadcast(){
-    if(!mediaStream){window.signalFlowPrepare();if(byId('message'))byId('message').textContent='Prepare the microphone first, then press Go Live again.';return;}
-    if(!appStatus.configured){if(byId('message'))byId('message').textContent='The interface is ready, but Icecast output has not been configured in Railway yet.';return;}
+    if(!mediaStream){window.signalFlowPrepare();if(byId('message'))byId('message').textContent='Select the microphone first, then press Go Live again.';return;}
+    if(!appStatus.configured){if(byId('message'))byId('message').textContent='The interface is ready, but the broadcast output has not been configured yet.';return;}
     if(typeof MediaRecorder==='undefined'){if(byId('message'))byId('message').textContent='Live audio encoding is not supported by this browser.';return;}
     var mime='',choices=['audio/webm;codecs=opus','audio/mp4','audio/webm'],i;
     if(MediaRecorder.isTypeSupported){for(i=0;i<choices.length;i++){if(MediaRecorder.isTypeSupported(choices[i])){mime=choices[i];break;}}}
@@ -215,11 +237,11 @@
       try{recorder=mime?new MediaRecorder(mediaStream,{mimeType:mime}):new MediaRecorder(mediaStream);}
       catch(e){if(byId('message'))byId('message').textContent='Could not start audio encoder: '+e.message;return;}
       recorder.ondataavailable=function(e){if(e.data&&e.data.size&&socket&&socket.readyState===1){e.data.arrayBuffer().then(function(b){socket.send(b);});}};
-      recorder.start(500);startedAt=Date.now();timerHandle=setInterval(function(){if(byId('timer'))byId('timer').textContent=fmt((Date.now()-startedAt)/1000);},250);
-      if(byId('badge')){byId('badge').className='badge live';byId('badge').textContent='● LIVE';}
-      if(byId('headline'))byId('headline').textContent='Live on air';
+      recorder.start(500);startedAt=Date.now();awaitingOutput=true;timerHandle=setInterval(function(){if(byId('timer'))byId('timer').textContent=fmt((Date.now()-startedAt)/1000);},250);
+      if(byId('badge')){byId('badge').className='badge';byId('badge').textContent='● CONNECTING';}
+      if(byId('headline'))byId('headline').textContent='Connecting to output';
       if(byId('go')){byId('go').textContent='■ End Broadcast';byId('go').className='btn go live';}
-      if(byId('message'))byId('message').textContent='Broadcasting to SignalFlow Live.';
+      if(byId('message'))byId('message').textContent='Audio is reaching SignalFlow. Waiting for the broadcast server to confirm the live source…';
       requestWake();
     };
     socket.onclose=function(){if(startedAt)finishBroadcast(false);};

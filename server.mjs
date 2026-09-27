@@ -7,21 +7,28 @@ import { WebSocketServer } from 'ws';
 
 const __dirname=path.dirname(fileURLToPath(import.meta.url));
 const publicDir=path.join(__dirname,'public');
+function cleanEnv(name,fallback=''){
+  const raw=process.env[name];
+  if(raw==null)return fallback;
+  const v=String(raw).trim();
+  if((v.startsWith('"')&&v.endsWith('"'))||(v.startsWith("'")&&v.endsWith("'"))) return v.slice(1,-1).trim();
+  return v;
+}
 const cfg={
-  port:Number(process.env.PORT||8080),
-  token:process.env.BROADCAST_TOKEN||'',
-  host:process.env.ICECAST_HOST||'',
-  icePort:Number(process.env.ICECAST_PORT||8000),
-  tls:String(process.env.ICECAST_TLS||'false').toLowerCase()==='true',
-  mount:(process.env.ICECAST_MOUNT||'/mobile-live.mp3').replace(/^([^/])/,'/$1'),
-  user:process.env.ICECAST_SOURCE_USER||'source',
-  pass:process.env.ICECAST_SOURCE_PASSWORD||'',
-  format:(process.env.OUTPUT_FORMAT||'mp3').toLowerCase(),
-  bitrate:process.env.OUTPUT_BITRATE||'128k',
-  rate:process.env.OUTPUT_SAMPLE_RATE||'44100',
-  channels:process.env.OUTPUT_CHANNELS||'2',
-  station:process.env.STATION_NAME||'SignalFlow Live',
-  listen:process.env.OUTPUT_LISTEN_URL||''
+  port:Number(cleanEnv('PORT','8080')),
+  token:cleanEnv('BROADCAST_TOKEN'),
+  host:cleanEnv('ICECAST_HOST'),
+  icePort:Number(cleanEnv('ICECAST_PORT','8000')),
+  tls:cleanEnv('ICECAST_TLS','false').toLowerCase()==='true',
+  mount:cleanEnv('ICECAST_MOUNT','/mobile-live.mp3').replace(/^([^/])/,'/$1'),
+  user:cleanEnv('ICECAST_SOURCE_USER','source'),
+  pass:cleanEnv('ICECAST_SOURCE_PASSWORD'),
+  format:cleanEnv('OUTPUT_FORMAT','mp3').toLowerCase(),
+  bitrate:cleanEnv('OUTPUT_BITRATE','128k'),
+  rate:cleanEnv('OUTPUT_SAMPLE_RATE','44100'),
+  channels:cleanEnv('OUTPUT_CHANNELS','2'),
+  station:cleanEnv('STATION_NAME','SignalFlow Live'),
+  listen:cleanEnv('OUTPUT_LISTEN_URL')
 };
 let active=null,lastError='';
 

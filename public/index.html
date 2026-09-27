@@ -79,7 +79,15 @@
 <div class="keybox" id="keyBox"><div class="muted">NEW BROADCASTER KEY</div><div class="keyvalue" id="generatedKey"></div><button class="btn secondary mini" id="copyKey">Copy key</button><p class="muted" id="keyMessage"></p></div></div>
 <div class="panel"><div class="headline"><div><div class="muted">ACCESS</div><h2>Broadcasters</h2></div><button class="btn secondary mini" id="refreshBroadcasters">Refresh</button></div><div class="broadcasters" id="broadcasterList"><div class="empty">Loading broadcasters…</div></div></div>
 </div>
-<div class="panel" style="margin-top:20px"><div class="headline"><div><div class="muted">ADMIN PLAYOUT</div><h2>Shared hotkeys</h2></div></div><p class="muted">Assign uploaded jingles or stabs to numbered hotkey slots. Every broadcaster sees the same buttons.</p><div id="hotkeyAdminList"><div class="empty">Loading audio library…</div></div></div><div class="panel" style="margin-top:20px"><div class="headline"><div><div class="muted">SERVER HISTORY</div><h2>Broadcast activity</h2></div><button class="btn secondary mini" id="refreshAudit">Refresh</button></div><div class="history" id="auditList"><div class="empty">Loading broadcast activity…</div></div></div>
+<div class="panel" style="margin-top:20px"><div class="headline"><div><div class="muted">ADMIN PLAYOUT</div><h2>Shared hotkeys</h2></div></div>
+<p class="muted">Upload station jingles, stabs or other shared audio here. These are kept separate from broadcasters' one-off audio and appear for every broadcaster as shared hotkeys.</p>
+<div class="audioUpload">
+  <div class="audioFilePick"><input id="hotkeyUpload" type="file"><button class="btn secondary mini" id="chooseHotkeyAudio" type="button">Choose audio</button><span class="audioFileName" id="hotkeyFileName">No file selected</span></div>
+  <select id="hotkeyUploadSlot" style="width:110px;margin:0;padding:8px 34px 8px 10px"><option value="1">Slot 1</option><option value="2">Slot 2</option><option value="3">Slot 3</option><option value="4">Slot 4</option><option value="5">Slot 5</option><option value="6">Slot 6</option></select>
+  <button class="btn secondary uploadMini" id="uploadHotkeyAudio">Upload hotkey</button>
+</div>
+<p class="muted" id="hotkeyUploadMessage"></p>
+<div id="hotkeyAdminList"><div class="empty">Loading shared hotkeys…</div></div></div><div class="panel" style="margin-top:20px"><div class="headline"><div><div class="muted">SERVER HISTORY</div><h2>Broadcast activity</h2></div><button class="btn secondary mini" id="refreshAudit">Refresh</button></div><div class="history" id="auditList"><div class="empty">Loading broadcast activity…</div></div></div>
 </section>
 </div></main></div>
 <nav class="mobile"><button class="active" data-view="broadcast">●<br>Broadcast</button><button data-view="output">↗<br>Output</button><button data-view="settings">⚙<br>Settings</button><button data-view="history">◷<br>History</button><button class="adminOnly" data-view="broadcasters">👤<br>Users</button></nav>
@@ -430,16 +438,38 @@
   }
   function renderHotkeyAdmin(){
     var el=byId('hotkeyAdminList');if(!el)return;
-    if(!audioLibrary.length){el.innerHTML='<div class="empty">Upload some audio first.</div>';return;}
-    el.innerHTML=audioLibrary.map(function(x){
-      var checked=x.hotkey?' checked':'',order=x.hotkeyOrder||1;
-      return '<div class="libraryRow"><div><b>'+esc(x.name)+'</b><div class="libraryMeta">'+esc(x.ownerName||'')+'</div></div><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><select id="hkOrder_'+x.id+'" style="width:72px;margin:0;padding:8px">'+[1,2,3,4,5,6].map(function(n){return '<option value="'+n+'"'+(n===order?' selected':'')+'>'+n+'</option>';}).join('')+'</select><button class="btn secondary mini" onclick="signalFlowHotkey(\''+x.id+'\','+(x.hotkey?'false':'true')+')">'+(x.hotkey?'Remove':'Make hotkey')+'</button><button class="btn secondary mini" onclick="signalFlowDeleteAudio(\''+x.id+'\',\''+esc(x.name).replace(/'/g,'&#39;')+'\')">Delete</button></div></div>';
+    var shared=audioLibrary.filter(function(x){return x.hotkey;});
+    if(!shared.length){el.innerHTML='<div class="empty">No shared hotkeys uploaded yet.</div>';return;}
+    el.innerHTML=shared.map(function(x){
+      var order=x.hotkeyOrder||1;
+      return '<div class="libraryRow"><div><b>'+esc(x.name)+'</b><div class="libraryMeta">Shared hotkey · Slot '+order+'</div></div><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><select id="hkOrder_'+x.id+'" style="width:72px;margin:0;padding:8px">'+[1,2,3,4,5,6].map(function(n){return '<option value="'+n+'"'+(n===order?' selected':'')+'>'+n+'</option>';}).join('')+'</select><button class="btn secondary mini" onclick="signalFlowHotkey(\''+x.id+'\',true)">Update slot</button><button class="btn secondary mini" onclick="signalFlowHotkey(\''+x.id+'\',false)">Remove hotkey</button><button class="btn secondary mini" onclick="signalFlowDeleteAudio(\''+x.id+'\',\''+esc(x.name).replace(/'/g,'&#39;')+'\')">Delete</button></div></div>';
     }).join('');
   }
   window.signalFlowHotkey=function(id,enabled){
     var orderEl=byId('hkOrder_'+id),order=orderEl?Number(orderEl.value):1;
     api('/api/audio/'+id+'/hotkey',{method:'POST',body:JSON.stringify({enabled:enabled,order:order})}).then(loadAudioLibrary).catch(function(e){alert(e.message);});
   };
+  function uploadHotkeyAudio(){
+    if(userRole!=='admin')return;
+    var input=byId('hotkeyUpload'),file=input&&input.files?input.files[0]:null;
+    var msg=byId('hotkeyUploadMessage'),slot=byId('hotkeyUploadSlot')?Number(byId('hotkeyUploadSlot').value):1;
+    if(!file){if(msg)msg.textContent='Choose an audio file first.';return;}
+    if(msg)msg.textContent='Uploading '+file.name+' to shared hotkey slot '+slot+'…';
+    fetch('/api/audio',{method:'POST',headers:{Authorization:'Bearer '+getToken(),'Content-Type':file.type||'application/octet-stream','X-File-Name':encodeURIComponent(file.name)},body:file})
+      .then(function(r){return r.json().then(function(j){if(!r.ok)throw new Error(j.error||'Upload failed');return j;});})
+      .then(function(data){
+        if(!data.audio||!data.audio.id)throw new Error('Upload completed but the hotkey could not be assigned.');
+        return api('/api/audio/'+data.audio.id+'/hotkey',{method:'POST',body:JSON.stringify({enabled:true,order:slot})});
+      })
+      .then(function(){
+        if(msg)msg.textContent='Shared hotkey uploaded and assigned to slot '+slot+'.';
+        input.value='';
+        if(byId('hotkeyFileName'))byId('hotkeyFileName').textContent='No file selected';
+        loadAudioLibrary();
+      })
+      .catch(function(e){if(msg)msg.textContent=e.message;});
+  }
+
   function uploadAudio(){
     var input=byId('audioUpload'),file=input&&input.files?input.files[0]:null;
     if(!file){if(byId('audioMessage'))byId('audioMessage').textContent='Choose an audio file first.';return;}
@@ -742,6 +772,12 @@
     if(byId('prepare'))byId('prepare').onclick=window.signalFlowPrepare;
     wireDeck(1);wireDeck(2);wireDeck(3);
     if(byId('uploadAudio'))byId('uploadAudio').onclick=uploadAudio;
+    if(byId('chooseHotkeyAudio'))byId('chooseHotkeyAudio').onclick=function(){if(byId('hotkeyUpload'))byId('hotkeyUpload').click();};
+    if(byId('hotkeyUpload'))byId('hotkeyUpload').onchange=function(){
+      var f=byId('hotkeyUpload').files&&byId('hotkeyUpload').files[0];
+      if(byId('hotkeyFileName'))byId('hotkeyFileName').textContent=f?f.name:'No file selected';
+    };
+    if(byId('uploadHotkeyAudio'))byId('uploadHotkeyAudio').onclick=uploadHotkeyAudio;
     if(byId('chooseAudio'))byId('chooseAudio').onclick=function(){if(byId('audioUpload'))byId('audioUpload').click();};
     if(byId('audioUpload'))byId('audioUpload').onchange=function(){
       var f=byId('audioUpload').files&&byId('audioUpload').files[0];

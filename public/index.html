@@ -47,14 +47,14 @@
     var input=byId('token'), msg=byId('authMsg'), modal=byId('auth');
     var value=input && input.value ? input.value.replace(/^\s+|\s+$/g,'') : '';
     if(!value){ if(msg) msg.textContent='Please enter the broadcaster key.'; return; }
-    try{ sessionStorage.setItem('sfl.token',value); }catch(e){ try{ localStorage.setItem('sfl.token',value); }catch(ignore){} }
+    try{ localStorage.setItem('sfl.token',value); sessionStorage.removeItem('sfl.token'); }catch(e){ try{ sessionStorage.setItem('sfl.token',value); }catch(ignore){} }
     try{if(input)input.blur();}catch(e){}
     if(modal){ modal.className+=' hide'; modal.style.display='none'; }
     setTimeout(function(){try{window.scrollTo(0,0);}catch(e){}},50);
   };
 
   function getToken(){
-    try{return sessionStorage.getItem('sfl.token')||localStorage.getItem('sfl.token')||'';}catch(e){return '';}
+    try{return localStorage.getItem('sfl.token')||sessionStorage.getItem('sfl.token')||'';}catch(e){return '';}
   }
   function requireFreshLogin(message){
     try{sessionStorage.removeItem('sfl.token');localStorage.removeItem('sfl.token');}catch(e){}

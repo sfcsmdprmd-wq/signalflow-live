@@ -41,7 +41,9 @@
 <div class="notice" id="emailStatus">Checking email delivery…</div>
 <div class="keybox" id="keyBox"><div class="muted">NEW BROADCASTER KEY</div><div class="keyvalue" id="generatedKey"></div><button class="btn secondary mini" id="copyKey">Copy key</button><p class="muted" id="keyMessage"></p></div></div>
 <div class="panel"><div class="headline"><div><div class="muted">ACCESS</div><h2>Broadcasters</h2></div><button class="btn secondary mini" id="refreshBroadcasters">Refresh</button></div><div class="broadcasters" id="broadcasterList"><div class="empty">Loading broadcasters…</div></div></div>
-</div></section>
+</div>
+<div class="panel" style="margin-top:20px"><div class="headline"><div><div class="muted">SERVER HISTORY</div><h2>Broadcast activity</h2></div><button class="btn secondary mini" id="refreshAudit">Refresh</button></div><div class="history" id="auditList"><div class="empty">Loading broadcast activity…</div></div></div>
+</section>
 </div></main></div>
 <nav class="mobile"><button class="active" data-view="broadcast">●<br>Broadcast</button><button data-view="output">↗<br>Output</button><button data-view="settings">⚙<br>Settings</button><button data-view="history">◷<br>History</button><button class="adminOnly" data-view="broadcasters">👤<br>Users</button></nav>
 <div class="modal" id="auth"><div class="card"><div class="brand authbrand"><div class="mark"><i></i><i></i><i></i><i></i></div><div><strong>SIGNALFLOW</strong><small>LIVE</small></div></div><div class="muted">BROADCASTER ACCESS</div><h2>Sign in to broadcast</h2><p class="muted">Enter the broadcaster key configured for this service.</p><label>Broadcaster key<input id="token" type="password" autocomplete="current-password"></label><button class="btn go full" id="signIn" type="button" onclick="signalFlowSignIn()">Continue</button><p class="muted" id="authMsg"></p></div></div>
@@ -83,7 +85,7 @@
   function loadMe(){
     if(!getToken())return;
     api('/api/me').then(function(me){
-      if(me.role==='admin'){all('.adminOnly').forEach(function(el){el.classList.add('show');});loadBroadcasters();}
+      if(me.role==='admin'){all('.adminOnly').forEach(function(el){el.classList.add('show');});loadBroadcasters();loadAudit();}
     }).catch(function(){});
   }
   function loadBroadcasters(){
@@ -103,6 +105,19 @@
       }).join('');
     }).catch(function(e){listEl.innerHTML='<div class="empty">'+esc(e.message)+'</div>';});
   }
+  function loadAudit(){
+    var el=byId('auditList');if(!el)return;
+    api('/api/broadcast-history').then(function(data){
+      var list=data.history||[];
+      if(!list.length){el.innerHTML='<div class="empty">No server-side broadcasts recorded yet.</div>';return;}
+      el.innerHTML=list.map(function(x){
+        var dur=fmt(x.durationSeconds||0),when=new Date(x.startedAt).toLocaleString();
+        var extra=(x.reconnects||0)?(' · '+x.reconnects+' reconnect'+(x.reconnects===1?'':'s')):'';
+        return '<div class="hist"><div><b>'+esc(x.broadcasterName||'Unknown broadcaster')+'</b><div class="muted">'+esc(when)+(x.broadcasterEmail?' · '+esc(x.broadcasterEmail):'')+extra+'</div></div><div>'+esc(dur)+'</div></div>';
+      }).join('');
+    }).catch(function(e){el.innerHTML='<div class="empty">'+esc(e.message)+'</div>';});
+  }
+
   function showGeneratedKey(key,message){
     if(byId('generatedKey'))byId('generatedKey').textContent=key||'';
     if(byId('keyMessage'))byId('keyMessage').textContent=message||'';
@@ -335,6 +350,7 @@
     if(byId('clear'))byId('clear').onclick=function(){try{localStorage.removeItem('sfl.history');}catch(e){}renderHistory();};
     if(byId('addBroadcaster'))byId('addBroadcaster').onclick=window.signalFlowCreateBroadcaster;
     if(byId('refreshBroadcasters'))byId('refreshBroadcasters').onclick=loadBroadcasters;
+    if(byId('refreshAudit'))byId('refreshAudit').onclick=loadAudit;
     if(byId('copyKey'))byId('copyKey').onclick=function(){var k=byId('generatedKey').textContent;if(k&&navigator.clipboard)navigator.clipboard.writeText(k);};
     if(byId('signIn'))byId('signIn').onclick=window.signalFlowSignIn;
     try{if(getToken()&&byId('auth')){byId('auth').classList.add('hide');byId('auth').style.display='none';}}catch(e){}

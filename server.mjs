@@ -127,7 +127,28 @@ async function sendInvite(user,key){
  if(!emailConfigured())return {sent:false,reason:'Email delivery is not configured yet'};
  if(!mailer)mailer=nodemailer.createTransport({host:cfg.smtpHost,port:cfg.smtpPort,secure:cfg.smtpSecure,auth:{user:cfg.smtpUser,pass:cfg.smtpPass}});
  const subject='Your SignalFlow Live broadcaster access';
- const text='Hello '+user.name+',\n\nYou now have access to SignalFlow Live.\n\nOpen: '+cfg.publicUrl+'\nBroadcaster key: '+key+'\n\nHow to broadcast:\n1. Open SignalFlow Live and enter your broadcaster key.\n2. Select Microphone and choose/check your microphone.\n3. Press Go Live.\n4. Wait until the status changes to ON AIR before starting.\n5. When finished, press End Broadcast.\n\nYour key is personal to you, so please do not share it.\n';
+ const text=
+  'Hello '+user.name+',\n\n'+
+  'You now have access to SignalFlow Live, the station\'s remote live broadcasting system.\n\n'+
+  'Open SignalFlow Live: '+cfg.publicUrl+'\n'+
+  'Your broadcaster key: '+key+'\n\n'+
+  'GETTING STARTED\n'+
+  '1. Open SignalFlow Live and enter your broadcaster key. Your key is personal to you, so please do not share it.\n'+
+  '2. Connect any microphone, headphones or audio interface you plan to use, then select Microphone and confirm the correct input.\n'+
+  '3. Use the microphone meter and Headphone Monitor to check your setup before going live. Headphones are recommended if you enable microphone monitoring.\n'+
+  '4. The clock at the top of the screen shows local time in HH:MM:SS for working to a clock start.\n'+
+  '5. Press Go Live and wait until the status changes to the bright red ON AIR indication before starting your broadcast.\n\n'+
+  'WHILE YOU ARE LIVE\n'+
+  '- Only one broadcaster can be on air at a time. If another presenter is already live, SignalFlow will show IN USE and your Go Live button will be unavailable until their session ends.\n'+
+  '- You can press Compact on the live panel to reduce it to the essential on-air information and bring the audio players closer to the top of the screen. Press Expand to restore the full controls.\n'+
+  '- The three audio players can be used for longer clips and provide play, pause/resume, stop and eject controls.\n'+
+  '- Shared hotkeys are intended for quick station audio such as jingles and stabs. Some hotkeys may be configured as Beds; when a bed is playing, you can Duck or Restore it from the Now Playing bar while speaking over it.\n'+
+  '- The Mute Mic control mutes your microphone without ending the live connection.\n'+
+  '- The Now Playing bar shows active playout audio and gives you quick access to relevant controls.\n\n'+
+  'ENDING YOUR BROADCAST\n'+
+  'When you are finished, press and hold Hold to End until SignalFlow confirms the broadcast has ended. This prevents the programme being taken off air accidentally.\n\n'+
+  'If your device loses connection unexpectedly, SignalFlow will release the live session so another broadcaster can take over. An administrator can also force-end a stuck session if required.\n\n'+
+  'Please keep your broadcaster key private and only use it on devices you trust.\n';
  await mailer.sendMail({from:cfg.emailFrom,to:user.email,subject,text});
  return {sent:true};
 }

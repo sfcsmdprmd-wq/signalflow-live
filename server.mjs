@@ -134,7 +134,7 @@ async function sendInvite(user,key){
   'Your broadcaster key: '+key+'\n\n'+
   'GETTING STARTED\n'+
   '1. Open SignalFlow Live and enter your broadcaster key. Your key is personal to you, so please do not share it.\n'+
-  '2. Connect any microphone, headphones or audio interface you plan to use, then select Microphone and confirm the correct input.\n'+
+  '2. Connect any microphone, headphones or audio interface you plan to use, then select Microphone and confirm the correct input. A wired microphone or wired headset is recommended where possible because it gives you more reliable audio quality and greater control over input and monitoring. AirPods and other Bluetooth devices can work, but Bluetooth may reduce microphone quality and can limit how flexibly the device handles microphone and headphone audio at the same time.\n'+
   '3. Use the microphone meter and Headphone Monitor to check your setup before going live. Headphones are recommended if you enable microphone monitoring.\n'+
   '4. The clock at the top of the screen shows local time in HH:MM:SS for working to a clock start.\n'+
   '5. Press Go Live and wait until the status changes to the bright red ON AIR indication before starting your broadcast.\n\n'+
